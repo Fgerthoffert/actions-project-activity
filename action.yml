@@ -1,19 +1,37 @@
-name: The name of your action here
-description: Provide a description here
-author: Your name or organization here
+name: 'Propject activity metrics'
+description:
+  'Transfer issues between repositories using labels, including private to
+  public transfers.'
+author: 'fgerthoffert'
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
-  icon: heart
-  color: red
+  icon: activity
+  color: green
 
 # Define your inputs here.
 inputs:
-  milliseconds:
-    description: Your input description here
+  token:
+    description: 'A GitHub Personal API Token'
     required: true
-    default: '1000'
-
+  config:
+    description: 'Configuration file path'
+    required: true
+  github_org_name:
+    description: 'The GitHub organization name'
+    required: true
+  github_project_number:
+    description: 'A project number inside the organization'
+    required: true
+  dev_cache:
+    description:
+      'Enable development cache, this prevents the action from fetching data
+      from GitHub too frequently'
+    required: true
+    default: false
+  views_output_path:
+    description: 'Filepath where the dashboards will be saved'
+    required: true
 # Define your outputs here.
 outputs:
   time:
