@@ -70,6 +70,13 @@
         padding: 15px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
+      .table-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        margin-bottom: 5px;
+      }      
       .table-header {
         display: flex;
         justify-content: space-between;
@@ -175,9 +182,7 @@
       <div class="table-container">
         <div class="table-header">
           <h3 id="table-title"></h3>
-          <span id="selected-source"
-            >Click on any chart bar to see details</span
-          >
+          <span id="selected-source">Click on any chart bar to see details</span>
         </div>
         <table>
           <thead>
@@ -197,7 +202,33 @@
           </tbody>
         </table>
       </div>
+      <div class="table-container">
+        <div class="table-header">
+          <h3>Data Streams</h3>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Query</th>
+            </tr>
+          </thead>
+          <tbody id="details-table-stream">
+            <tr>
+              <td colspan="3">No data selected</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="table-footer">
+          <span><i>Streams are queries executed against ALL Issues and Pull Requests (PR) attached to the selected project. <br />
+            Their order matters, if a Issue or PR is present in the first stream, it will be ignored on the following streams. This prevents issues/PRs from being counted multiple times.</i></span>        
+        </div>
+      </div>
+    </div>  
     </div>
+
+  
 
     <script>
       // Single JavaScript data object containing all our data
@@ -208,7 +239,7 @@
       document.title = groupMetrics.name
 
       // Update the table with data clicked in the chart
-      function updateStreamTable({ srcChart, selection, nodes }) {
+      function updateTable({ srcChart, selection, nodes }) {
         console.log('Updating table with data coming from:', srcChart)
 
         document.getElementById('table-title').textContent =
@@ -228,6 +259,21 @@
                 <td><a href="${node.repository.url}" target="_blank">${node.repository.owner.login}/${node.repository.name}</a></td>
                 <td>${node.milestone?.title ? node.milestone?.title : ''}</td>
                 <td>${node.points}</td>
+              `
+          tableBody.appendChild(row)
+        })
+      }
+
+      function updateStreamsTable(srcData) {
+        const tableBody = document.getElementById('details-table-stream')
+        tableBody.innerHTML = ''
+
+        srcData.streams.forEach((stream) => {
+          const row = document.createElement('tr')
+          row.innerHTML = `
+                <td>${stream.name}</td>
+                <td>${stream.description}</td>
+                <td>${JSON.stringify(stream.query)}</td>
               `
           tableBody.appendChild(row)
         })
@@ -326,7 +372,7 @@
             (stream) => stream.name === streamName
           )
           if (stream && stream.weeks[streamIndex]) {
-            updateStreamTable({
+            updateTable({
               srcChart: chartTitle,
               selection: `${streamName} on ${dateFns.format(new Date(stream.weeks[streamIndex].firstDay), 'LLL do')} (${stream.weeks[streamIndex].nodes.length} nodes)`,
               nodes: stream.weeks[streamIndex].nodes
@@ -522,7 +568,7 @@
             (stream) => stream.name === streamName
           )
           if (stream && stream.weeks[streamIndex]) {
-            updateStreamTable({
+            updateTable({
               srcChart: chartTitle,
               selection: `${streamName} on ${dateFns.format(new Date(stream.weeks[streamIndex].firstDay), 'LLL do')} (${stream.weeks[streamIndex].nodes.length} nodes)`,
               nodes: stream.weeks[streamIndex].nodes
@@ -559,6 +605,8 @@
         // Set up event listener for view mode switch
         const switchElement = document.getElementById('view-mode-switch')
         switchElement.addEventListener('change', toggleViewMode)
+
+        updateStreamsTable(groupMetrics)
       }
 
       function updateAllCharts(metric) {
