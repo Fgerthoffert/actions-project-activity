@@ -1,3 +1,9 @@
+import { GitHubProjectV2Node } from '../../types/index.js'
+
+export interface ProjectCardsResponse {
+  node: GitHubProjectV2Node | null
+}
+
 export const getProjectCardsGraphQL = `
   query paginate ($projectId: ID!, $increment: Int = 30, $cursor: String) {
     node(id: $projectId) {

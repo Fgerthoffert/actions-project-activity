@@ -1,6 +1,8 @@
 import * as core from '@actions/core'
 
-import { sleep } from '../utils'
+import { GitHubRateLimit } from '../types/index.js'
+
+import { sleep } from '../utils/index.js'
 
 /**
  * Processes the rate limit and pauses execution if the remaining tokens are below a specified threshold.
@@ -10,7 +12,7 @@ import { sleep } from '../utils'
  * @returns A promise that resolves when the execution can resume.
  */
 export const processRateLimit = async (
-  rateLimit: RateLimit,
+  rateLimit: GitHubRateLimit,
   minTokens = 50
 ): Promise<void> => {
   if (rateLimit.remaining - rateLimit.cost < 50 && rateLimit.resetAt !== null) {

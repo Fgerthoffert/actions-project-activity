@@ -4,10 +4,20 @@
 /* eslint-disable  @typescript-eslint/no-unsafe-call */
 
 import * as core from '@actions/core'
+import { Octokit } from '@octokit/core'
 import { FlatCache } from 'flat-cache'
 
-import { getPullRequestsGraphQL } from './graphql/getPullRequestsGraphQL'
-import { getNodesByIds, augmentNodes } from './'
+import {
+  Config,
+  GitHubProjectCard,
+  GitHubPullRequest,
+  DeliveryItem
+} from '../types/index.js'
+
+import { getPullRequestsGraphQL } from './graphql/getPullRequests.graphql.js'
+
+import { getNodesByIds } from './getNodesByIds.js'
+import { augmentNodes } from './augmentNodes.js'
 
 export const getPullRequests = async ({
   octokit,
@@ -16,15 +26,15 @@ export const getPullRequests = async ({
   dataCacheDir,
   devCache = false
 }: {
-  octokit: any
-  config: any
-  githubProjectCards: string[]
+  octokit: Octokit
+  config: Config
+  githubProjectCards: GitHubProjectCard[]
   dataCacheDir: string
   devCache?: boolean
-}): Promise<any> => {
+}): Promise<DeliveryItem[]> => {
   core.info(`Fetching all closed PRs attached to the project`)
 
-  let prs: any = []
+  let deliveryItems: DeliveryItem[] = []
 
   const cache = new FlatCache({
     cacheId: 'cache',
@@ -32,17 +42,17 @@ export const getPullRequests = async ({
     ttl: 60 * 60 * 1000
   })
   await cache.load()
-  const cacheData = await cache.getKey('prs')
+  const cacheData: DeliveryItem[] = await cache.getKey('prs')
 
   if (devCache === true && cacheData !== undefined) {
     core.info(`PRs were found in cache. Using cached data...`)
-    prs = cacheData
+    deliveryItems = cacheData
   } else {
     core.info(
       `No existing cache found for PRs, or caching disabled Fetching from GitHub...`
     )
 
-    prs = await getNodesByIds({
+    const prs: GitHubPullRequest[] = await getNodesByIds({
       octokit,
       githubIds: githubProjectCards
         .filter(
@@ -55,13 +65,13 @@ export const getPullRequests = async ({
     })
 
     // augment issues with additional data coming from the project cards
-    prs = augmentNodes(prs, githubProjectCards, config.fields.points)
+    deliveryItems = augmentNodes(prs, githubProjectCards, config.fields.points)
   }
 
-  await cache.setKey('prs', prs)
+  await cache.setKey('prs', deliveryItems)
   await cache.save()
 
-  return prs
+  return deliveryItems
 }
 
 export default getPullRequests

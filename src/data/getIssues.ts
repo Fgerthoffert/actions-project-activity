@@ -4,10 +4,20 @@
 /* eslint-disable  @typescript-eslint/no-unsafe-call */
 
 import * as core from '@actions/core'
+import { Octokit } from '@octokit/core'
 import { FlatCache } from 'flat-cache'
 
-import { getIssuesGraphQL } from './graphql/getIssuesGraphQL'
-import { getNodesByIds, augmentNodes } from './'
+import {
+  Config,
+  GitHubProjectCard,
+  GitHubIssue,
+  DeliveryItem
+} from '../types/index.js'
+
+import { getIssuesGraphQL } from './graphql/getIssues.graphql.js'
+
+import { getNodesByIds } from './getNodesByIds.js'
+import { augmentNodes } from './augmentNodes.js'
 
 export const getIssues = async ({
   octokit,
@@ -16,15 +26,15 @@ export const getIssues = async ({
   dataCacheDir,
   devCache = false
 }: {
-  octokit: any
-  config: any
-  githubProjectCards: any[]
+  octokit: Octokit
+  config: Config
+  githubProjectCards: GitHubProjectCard[]
   dataCacheDir: string
   devCache?: boolean
-}): Promise<any> => {
+}): Promise<DeliveryItem[]> => {
   core.info(`Fetching all closed issues attached to the project`)
 
-  let issues: any = []
+  let deliveryItems: DeliveryItem[] = []
 
   const cache = new FlatCache({
     cacheId: 'cache',
@@ -32,36 +42,42 @@ export const getIssues = async ({
     ttl: 60 * 60 * 1000
   })
   await cache.load()
-  const cacheData = await cache.getKey('issues')
+  const cacheData: DeliveryItem[] = await cache.getKey('issues')
 
   if (devCache === true && cacheData !== undefined) {
     core.info(`Issues were found in cache. Using cached data...`)
-    issues = cacheData
+    deliveryItems = cacheData
   } else {
     core.info(
       `No existing cache found for issues, or caching disabled Fetching from GitHub...`
     )
 
-    issues = await getNodesByIds({
+    const issues: GitHubIssue[] = await getNodesByIds({
       octokit,
       githubIds: githubProjectCards
         .filter(
-          (card: any) =>
-            card.content.__typename === 'Issue' &&
-            card.content.closedAt !== null
+          (card) =>
+            card.content !== null &&
+            card.content?.__typename === 'Issue' &&
+            card.content?.closedAt !== null
         )
-        .map((card: any) => card.content.id),
+        .map((card) => card.content?.id)
+        .filter((id): id is string => id !== undefined),
       graphQLQuery: getIssuesGraphQL
     })
 
-    // augment issues with additional data coming from the project cards
-    issues = augmentNodes(issues, githubProjectCards, config.fields.points)
+    // Augment issues with additional data coming from the project cards
+    deliveryItems = augmentNodes(
+      issues,
+      githubProjectCards,
+      config.fields.points
+    )
   }
 
-  await cache.setKey('issues', issues)
+  await cache.setKey('issues', deliveryItems)
   await cache.save()
 
-  return issues
+  return deliveryItems
 }
 
 export default getIssues

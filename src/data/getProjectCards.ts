@@ -9,7 +9,12 @@ import { paginateGraphQL } from '@octokit/plugin-paginate-graphql'
 
 import { FlatCache } from 'flat-cache'
 
-import { getProjectCardsGraphQL } from './graphql/getProjectCardsGraphQL'
+import { GitHubProjectCard, GitHubProjectCardEdge } from '../types/index.js'
+
+import {
+  getProjectCardsGraphQL,
+  ProjectCardsResponse
+} from './graphql/getProjectCards.graphql.js'
 
 export const getProjectCards = async ({
   inputGithubToken,
@@ -23,21 +28,23 @@ export const getProjectCards = async ({
   increment?: number
   dataCacheDir: string
   devCache?: boolean
-}): Promise<any> => {
+}): Promise<GitHubProjectCard[]> => {
   const MyOctokit = Octokit.plugin(paginateGraphQL)
   const octokit = new MyOctokit({ auth: inputGithubToken })
 
-  let projectCards: any = []
+  let projectCards: GitHubProjectCard[] = []
 
   core.info(`Fetching all cards for project ID: ${projectId}`)
 
+  // FlatCache is useful during development to avoid hitting the GitHub API too often
+  // and to speed up the process. It is not recommended to use it in production.
   const cache = new FlatCache({
     cacheId: 'cache',
     cacheDir: dataCacheDir,
     ttl: 60 * 60 * 1000
   })
   await cache.load()
-  const cacheData = await cache.getKey('projectCards')
+  const cacheData: GitHubProjectCard[] = await cache.getKey('projectCards')
 
   if (devCache === true && cacheData !== undefined) {
     core.info(`Project cards were found in cache. Using cached data...`)
@@ -47,7 +54,7 @@ export const getProjectCards = async ({
       `No existing cache found for project cards, or caching disabled Fetching from GitHub...`
     )
 
-    const graphQLResponse: any = await octokit.graphql
+    const graphQLResponse: ProjectCardsResponse = await octokit.graphql
       .paginate(
         //.graphql(
         getProjectCardsGraphQL,
@@ -57,7 +64,9 @@ export const getProjectCards = async ({
         core.error(error.message)
       })
     projectCards =
-      graphQLResponse?.node?.items?.edges.map((edge: any) => edge.node) || []
+      graphQLResponse?.node?.items?.edges.map(
+        (edge: GitHubProjectCardEdge) => edge.node
+      ) || []
   }
 
   await cache.setKey('projectCards', projectCards)

@@ -1,10 +1,32 @@
+import {
+  GitHubProjectCard,
+  GitHubIssue,
+  GitHubPullRequest,
+  GitHubProjectV2ItemFieldValue,
+  GitHubLabel,
+  GitHubProject,
+  DeliveryItem
+} from '../types/index.js'
+
+/**
+ * Augments a list of GitHub issues or pull requests with additional data or with mutations to simplify the
+ * data structure fetched from GraphQL.
+ * This function aligns the `mergedAt` date to `closedAt` for pull requests, extracts project field values,
+ * calculates points based on a specified field, and adds metadata such as labels and associated projects.
+ *
+ * @param nodes - An array of GitHub issues or pull requests to be augmented.
+ * @param githubProjectCards - An array of GitHub project cards containing additional metadata.
+ * @param pointsField - The name of the field in the project cards used to calculate points.
+ * @returns A new array of GitHub issues or pull requests with augmented data.
+ */
 export const augmentNodes = (
-  nodes: Array<any>,
-  githubProjectCards: Array<any>,
+  nodes: GitHubIssue[] | GitHubPullRequest[],
+  githubProjectCards: GitHubProjectCard[],
   pointsField: string
-): Array<any> => {
+): DeliveryItem[] => {
   return nodes.map((node: any) => {
     // Align mergedAt date to closedAt to simplify the logic downstream
+    // We're only
     if (node.mergedAt !== undefined && node.mergedAt !== null) {
       node = {
         ...node,
@@ -15,39 +37,68 @@ export const augmentNodes = (
       (card: any) => card.content.id === node.id
     )
     if (card) {
+      // Projects fields are not necessarily easy to parse
+      // You can also refer to the source GraphQL query to learn more
       const projectFields = card.fieldValues.nodes
-        .filter((obj: any) => Object.keys(obj).length > 0)
-        .reduce((acc: any, obj: any) => {
-          if (obj.__typename === 'ProjectV2FieldValue') {
-            acc[obj.field.name] = obj.text
-          } else if (obj.__typename === 'ProjectV2ItemFieldTextValue') {
-            acc[obj.field.name] = obj.text
-          } else if (obj.__typename === 'ProjectV2ItemFieldSingleSelectValue') {
-            acc[obj.field.name] = obj.name
-          } else if (obj.__typename === 'ProjectV2ItemFieldNumberValue') {
-            acc[obj.field.name] = obj.number
-          } else if (obj.__typename === 'ProjectV2ItemFieldDateValue') {
-            acc[obj.field.name] = obj.date
-          } else if (obj.__typename === 'ProjectV2ItemFieldIterationValue') {
-            acc[obj.field.name] = obj.title
-          } else if (obj.name !== undefined) {
-            acc[obj.field.name] = obj.name
-          }
-          return acc
-        }, {})
+        .filter(
+          (obj: GitHubProjectV2ItemFieldValue) => Object.keys(obj).length > 0
+        )
+        .reduce(
+          (
+            acc: {
+              [key: string]: string | number | null | undefined
+            },
+            obj: GitHubProjectV2ItemFieldValue
+          ): {
+            [key: string]: string | number | null | undefined
+          } => {
+            const fieldName = obj.field?.name
+            if (!fieldName) return acc
+
+            switch (obj.__typename) {
+              case 'ProjectV2ItemFieldTextValue':
+                acc[fieldName] = obj.text
+                break
+              case 'ProjectV2ItemFieldSingleSelectValue':
+                acc[fieldName] = obj.name
+                break
+              case 'ProjectV2ItemFieldNumberValue':
+                acc[fieldName] = obj.number
+                break
+              case 'ProjectV2ItemFieldDateValue':
+                acc[fieldName] = obj.date
+                break
+              case 'ProjectV2ItemFieldIterationValue':
+                acc[fieldName] = obj.title
+                break
+              default:
+                const typedObj = obj as { name?: string }
+                if (typedObj.name !== undefined) {
+                  acc[fieldName] = typedObj.name
+                }
+                break
+            }
+            return acc
+          },
+          {}
+        )
       const pointsfield = card.fieldValues.nodes
-        .filter((obj: any) => Object.keys(obj).length > 0)
-        .find((obj: any) => obj.field.name === pointsField)
+        .filter((obj) => Object.keys(obj).length > 0)
+        .find((obj) => obj.field.name === pointsField)
       let points = 0
       if (pointsfield !== undefined) {
-        points = pointsfield.number
+        if (pointsfield.__typename === 'ProjectV2ItemFieldNumberValue') {
+          points = pointsfield.number
+        }
       }
       return {
         ...node,
         points: points,
         type: node.__typename,
-        labels: node.labels.nodes.map((label: any) => label.name),
-        projectsV2: node.projectsV2.nodes.map((project: any) => project.title),
+        labels: node.labels.nodes.map((label: GitHubLabel) => label.name),
+        projectsV2: node.projectsV2.nodes.map(
+          (project: GitHubProject) => project.title
+        ),
         project: {
           ...projectFields
         }

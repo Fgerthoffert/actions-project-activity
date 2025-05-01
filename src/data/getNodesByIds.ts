@@ -4,17 +4,27 @@
 /* eslint-disable  @typescript-eslint/no-unsafe-call */
 
 import * as core from '@actions/core'
+import { Octokit } from '@octokit/core'
 
-import { chunkArray, sleep } from '../utils'
-import { processRateLimit } from './'
+import {
+  GitHubRateLimit,
+  GitHubIssue,
+  GitHubPullRequest
+} from '../types/index.js'
+
+import { chunkArray, sleep } from '../utils/index.js'
+import { processRateLimit } from './processRateLimit.js'
+
+interface GitHubNodeResponse {
+  nodes: GitHubIssue[] | GitHubPullRequest[]
+  rateLimit: GitHubRateLimit
+}
 
 export const getNodesByIds = async ({
   octokit,
   githubIds,
   graphQLQuery,
   increment = 50,
-  dataCacheDir,
-  devCache = false,
   rateLimit = {
     limit: 5000,
     cost: 1,
@@ -22,17 +32,15 @@ export const getNodesByIds = async ({
     resetAt: null
   }
 }: {
-  octokit: any
+  octokit: Octokit
   githubIds: string[]
   graphQLQuery: any
   increment?: number
-  dataCacheDir: string
-  devCache?: boolean
-  rateLimit: any
+  rateLimit?: GitHubRateLimit
 }): Promise<any> => {
   // After 3 consecutive API calls failures, stop the process with an error
   const maxRetries = 3
-  let fetchedNodes: any[] = []
+  let fetchedNodes: GitHubIssue[] | GitHubPullRequest[] = []
 
   // This received an array of node ids, will split the array in chunks of X
   core.info(`Will be collecting details about ${githubIds.length} nodes`)
@@ -48,14 +56,18 @@ export const getNodesByIds = async ({
         `Loading ${idsChunk.length} repos from GitHub ${fetchedNodes.length + idsChunk.length} / ${githubIds.length} ${retries > 0 ? ' - API error, retry: ' + retries + '/' + maxRetries : ''}`
       )
       const t0 = performance.now()
-      const graphQLResponse: any = await octokit
-        .graphql(graphQLQuery, { nodesArray: idsChunk })
+      const graphQLResponse = await octokit
+        .graphql<GitHubNodeResponse>(graphQLQuery, { nodesArray: idsChunk })
         .catch((error: Error) => {
           core.error(error.message)
         })
       const t1 = performance.now()
       const callDuration = t1 - t0
-      if (graphQLResponse.rateLimit !== undefined) {
+      if (
+        graphQLResponse &&
+        'rateLimit' in graphQLResponse &&
+        graphQLResponse.rateLimit !== undefined
+      ) {
         rateLimit = graphQLResponse.rateLimit
       }
       if (
