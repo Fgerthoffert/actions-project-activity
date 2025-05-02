@@ -1,18 +1,15 @@
-/* eslint-disable  @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable  @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable  @typescript-eslint/no-explicit-any */
-/* eslint-disable  @typescript-eslint/no-unsafe-call */
+import { MetricStream, MetricWeek } from '../types/index.js'
 
 export const buildDistribution = (
-  allNodesWeeks: any[],
-  streams: any[]
-): any => {
+  allNodesWeeks: MetricWeek[],
+  streams: MetricStream[]
+): MetricStream[] => {
   return streams.map((stream) => {
     return {
       ...stream,
-      weeks: stream.weeks.map((week: any) => {
+      weeks: stream.weeks.map((week) => {
         const allNodesWeek = allNodesWeeks.find(
-          (w: any) => w.firstDay === week.firstDay
+          (w) => w.firstDay === week.firstDay
         )
         if (allNodesWeek) {
           return {

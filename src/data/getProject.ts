@@ -1,9 +1,5 @@
-/* eslint-disable  @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable  @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable  @typescript-eslint/no-explicit-any */
-/* eslint-disable  @typescript-eslint/no-unsafe-call */
 import * as core from '@actions/core'
-import { Octokit } from '@octokit/core'
+import * as github from '@actions/github'
 
 import { GitHubProject } from '../types/index.js'
 
@@ -13,17 +9,19 @@ import {
 } from './graphql/getProject.graphql.js'
 
 export const getProject = async ({
-  octokit,
+  inputGithubToken,
   ownerLogin,
   projectNumber
 }: {
-  octokit: Octokit
+  inputGithubToken: string
   ownerLogin: string
   projectNumber: number
 }): Promise<GitHubProject> => {
   core.info(
     `Fetching details about a project number ${projectNumber} in organization ${ownerLogin}`
   )
+
+  const octokit = github.getOctokit(inputGithubToken)
 
   const graphQLResponse = await octokit
     .graphql<ProjectResponse>(getProjectGraphQL, {

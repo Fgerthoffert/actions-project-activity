@@ -1,10 +1,4 @@
-/* eslint-disable  @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable  @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable  @typescript-eslint/no-explicit-any */
-/* eslint-disable  @typescript-eslint/no-unsafe-call */
-
 import * as core from '@actions/core'
-import { Octokit } from '@octokit/core'
 
 import {
   Config,
@@ -20,14 +14,12 @@ import { getIssues } from './getIssues.js'
 import { getPullRequests } from './getPullRequests.js'
 
 export const fetchData = async ({
-  octokit,
   inputGithubToken,
   inputGithubOrgName,
   inputGithubProjectNumber,
   inputDevCache,
   config
 }: {
-  octokit: Octokit
   inputGithubToken: string
   inputGithubOrgName: string
   inputGithubProjectNumber: number
@@ -38,39 +30,57 @@ export const fetchData = async ({
 
   const dataCacheDir = await getCacheDirectory('actions-project-activity')
 
-  const githubProject: GitHubProject = await getProject({
-    octokit,
-    ownerLogin: inputGithubOrgName,
-    projectNumber: inputGithubProjectNumber
-  })
-  core.info(
-    `Successfully retrieved project: ${githubProject.title} (ID: ${githubProject.id}) - Total number of cards: ${githubProject.items?.totalCount ?? 0}`
+  const githubProjectCards = await core.group(
+    `⬇️ Fetching Project data from GitHub`,
+    async () => {
+      const githubProject: GitHubProject = await getProject({
+        inputGithubToken,
+        ownerLogin: inputGithubOrgName,
+        projectNumber: inputGithubProjectNumber
+      })
+      core.info(
+        `Successfully retrieved project: ${githubProject.title} (ID: ${githubProject.id}) - Total number of cards: ${githubProject.items?.totalCount ?? 0}`
+      )
+
+      const githubProjectCards: GitHubProjectCard[] = await getProjectCards({
+        inputGithubToken,
+        projectId: githubProject.id!,
+        dataCacheDir,
+        devCache: inputDevCache
+      })
+      return githubProjectCards
+    }
   )
 
-  const githubProjectCards: GitHubProjectCard[] = await getProjectCards({
-    inputGithubToken,
-    projectId: githubProject.id!,
-    dataCacheDir,
-    devCache: inputDevCache
-  })
+  const githubIssues = await core.group(
+    `⬇️ Fetching Issues from GitHub`,
+    async () => {
+      const githubIssues = await getIssues({
+        inputGithubToken,
+        config,
+        githubProjectCards,
+        dataCacheDir,
+        devCache: inputDevCache
+      })
+      core.info(`Successfully retrieved ${githubIssues.length} Issues`)
+      return githubIssues
+    }
+  )
 
-  const githubIssues = await getIssues({
-    octokit,
-    config,
-    githubProjectCards,
-    dataCacheDir,
-    devCache: inputDevCache
-  })
-  core.info(`Successfully retrieved ${githubIssues.length} Issues`)
-
-  const githubPullRequests = await getPullRequests({
-    octokit,
-    config,
-    githubProjectCards,
-    dataCacheDir,
-    devCache: inputDevCache
-  })
-  core.info(`Successfully retrieved ${githubPullRequests.length} PRs`)
+  const githubPullRequests = await core.group(
+    `⬇️ Fetching Pull Requests from GitHub`,
+    async () => {
+      const githubPullRequests = await getPullRequests({
+        inputGithubToken,
+        config,
+        githubProjectCards,
+        dataCacheDir,
+        devCache: inputDevCache
+      })
+      core.info(`Successfully retrieved ${githubPullRequests.length} PRs`)
+      return githubPullRequests
+    }
+  )
 
   const allNodes: DeliveryItem[] = [...githubIssues, ...githubPullRequests]
 

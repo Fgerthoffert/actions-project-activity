@@ -1,10 +1,4 @@
-/* eslint-disable  @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable  @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable  @typescript-eslint/no-explicit-any */
-/* eslint-disable  @typescript-eslint/no-unsafe-call */
-
 import * as core from '@actions/core'
-import { Octokit } from '@octokit/core'
 import { FlatCache } from 'flat-cache'
 
 import {
@@ -20,13 +14,13 @@ import { getNodesByIds } from './getNodesByIds.js'
 import { augmentNodes } from './augmentNodes.js'
 
 export const getIssues = async ({
-  octokit,
+  inputGithubToken,
   config,
   githubProjectCards,
   dataCacheDir,
   devCache = false
 }: {
-  octokit: Octokit
+  inputGithubToken: string
   config: Config
   githubProjectCards: GitHubProjectCard[]
   dataCacheDir: string
@@ -53,7 +47,7 @@ export const getIssues = async ({
     )
 
     const issues: GitHubIssue[] = await getNodesByIds({
-      octokit,
+      inputGithubToken,
       githubIds: githubProjectCards
         .filter(
           (card) =>

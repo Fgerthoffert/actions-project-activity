@@ -1,15 +1,18 @@
-/* eslint-disable  @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable  @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable  @typescript-eslint/no-explicit-any */
-/* eslint-disable  @typescript-eslint/no-unsafe-call */
-
 import * as core from '@actions/core'
+import { startOfWeek, add } from 'date-fns'
 
-import { startOfWeek, add, isEqual, differenceInWeeks, sub } from 'date-fns'
+import { MetricWeek, DeliveryItem } from '../types/index.js'
 
-const getEmptyWeeks = (startDate: Date, endDate: Date): any[] => {
+/**
+ * Generates an array of empty MetricWeek objects for each week between the specified start and end dates.
+ *
+ * @param startDate - The starting date for generating weeks. The first week will begin at the start of the week containing this date.
+ * @param endDate - The ending date for generating weeks. Weeks will be generated up to, but not including, this date.
+ * @returns An array of MetricWeek objects, each representing a week with initialized empty metrics and nodes.
+ */
+export const getEmptyWeeks = (startDate: Date, endDate: Date): MetricWeek[] => {
   let dateCursor = startOfWeek(startDate)
-  const weeks: Array<any> = []
+  const weeks: MetricWeek[] = []
   while (dateCursor < endDate) {
     weeks.push({
       firstDay: dateCursor,
@@ -32,7 +35,19 @@ const getEmptyWeeks = (startDate: Date, endDate: Date): any[] => {
   return weeks
 }
 
-export const buildEmptyCalendar = (nodes: any[]): any => {
+/**
+ * Builds an empty calendar object spanning from the earliest closed date
+ * to the latest closed date found in the provided delivery items.
+ *
+ * @param nodes - An array of `DeliveryItem` objects, each potentially containing a `closedAt` date.
+ * @returns An array of `MetricWeek` objects representing the empty calendar.
+ *
+ * @remarks
+ * - The function filters out `null` or `undefined` `closedAt` dates from the input.
+ * - Dates are sorted in ascending order to determine the range.
+ * - Logs the range of dates used for the placeholder calendar.
+ */
+export const buildEmptyCalendar = (nodes: DeliveryItem[]): MetricWeek[] => {
   // Returns an empty calendar object between first closed date last closed date
   const allDates = nodes.map((node) => {
     if (node.closedAt !== undefined && node.closedAt !== null) {
@@ -44,7 +59,7 @@ export const buildEmptyCalendar = (nodes: any[]): any => {
   const sortedDates = allDates
     .filter((date) => date !== null)
     .map((date) => new Date(date))
-    .sort((a: Date, b: Date) => a - b)
+    .sort((a: Date, b: Date) => a.getTime() - b.getTime())
   const firstClosedDate = new Date(sortedDates[0])
   const lastClosedDate = new Date(sortedDates[sortedDates.length - 1])
 

@@ -1,11 +1,22 @@
-/* eslint-disable  @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable  @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable  @typescript-eslint/no-explicit-any */
-/* eslint-disable  @typescript-eslint/no-unsafe-call */
 import * as fs from 'fs'
-
 import * as core from '@actions/core'
 
+/**
+ * Ensures that the specified folder exists, creating it if necessary, and returns its path.
+ *
+ * @param folderName - The name of the folder to check or create.
+ * @returns A promise that resolves to the path of the folder.
+ *
+ * @remarks
+ * - If the folder does not exist, it will be created recursively.
+ * - Logs the folder name to the console and outputs an informational message using `core.info`.
+ *
+ * @example
+ * ```typescript
+ * const outputDir = await getOutputDirectory('output');
+ * console.log(`Directory created or verified: ${outputDir}`);
+ * ```
+ */
 export const getOutputDirectory = async (
   folderName: string
 ): Promise<string> => {

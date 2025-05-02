@@ -1,10 +1,10 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 
-import { loadActionConfig } from './utils'
-import { fetchData } from './data'
-import { buildMetrics } from './metrics'
-import { buildViews } from './views'
+import { loadActionConfig } from './utils/index.js'
+import { fetchData } from './data/index.js'
+import { buildMetrics } from './metrics/index.js'
+import { buildViews } from './views/index.js'
 
 /**
  * The main function for the action.
@@ -22,10 +22,10 @@ export async function run(): Promise<void> {
     )
     const inputDevCache = core.getInput('dev_cache') === 'true'
     const inputViewsOutputPath = core.getInput('views_output_path')
-
-    const config = loadActionConfig(inputYamlConfig)
-
     const octokit = github.getOctokit(inputGithubToken)
+
+    const config = await loadActionConfig(inputYamlConfig)
+
     const {
       data: { login }
     } = await octokit.rest.users.getAuthenticated()
@@ -33,7 +33,6 @@ export async function run(): Promise<void> {
 
     // Fetch all data from GitHub and return an array of nodes (both Issues and PRs)
     const allNodes = await fetchData({
-      octokit,
       inputGithubToken,
       inputGithubOrgName,
       inputGithubProjectNumber,
@@ -47,10 +46,15 @@ export async function run(): Promise<void> {
       config
     })
 
+    // Build the HTML views
     await buildViews({
       inputViewsOutputPath,
       groups: allMetrics
     })
+
+    core.info(
+      `Successfully built ${allMetrics.length} views and saved them to ${inputViewsOutputPath}`
+    )
   } catch (error) {
     // Fail the workflow run if an error occurs
     if (error instanceof Error) core.setFailed(error.message)

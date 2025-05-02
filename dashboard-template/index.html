@@ -76,7 +76,7 @@
         align-items: center;
         margin-top: 10px;
         margin-bottom: 5px;
-      }      
+      }
       .table-header {
         display: flex;
         justify-content: space-between;
@@ -182,7 +182,9 @@
       <div class="table-container">
         <div class="table-header">
           <h3 id="table-title"></h3>
-          <span id="selected-source">Click on any chart bar to see details</span>
+          <span id="selected-source"
+            >Click on any chart bar to see details</span
+          >
         </div>
         <table>
           <thead>
@@ -221,14 +223,18 @@
           </tbody>
         </table>
         <div class="table-footer">
-          <span><i>Streams are queries executed against ALL Issues and Pull Requests (PR) attached to the selected project. <br />
-            Their order matters, if a Issue or PR is present in the first stream, it will be ignored on the following streams. This prevents issues/PRs from being counted multiple times.</i></span>        
+          <span
+            ><i
+              >Streams are queries executed against ALL Issues and Pull Requests
+              (PR) attached to the selected project. <br />
+              Their order matters, if a Issue or PR is present in the first
+              stream, it will be ignored on the following streams. This prevents
+              issues/PRs from being counted multiple times.</i
+            ></span
+          >
         </div>
       </div>
-    </div>  
     </div>
-
-  
 
     <script>
       // Single JavaScript data object containing all our data

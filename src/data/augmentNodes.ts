@@ -24,7 +24,7 @@ export const augmentNodes = (
   githubProjectCards: GitHubProjectCard[],
   pointsField: string
 ): DeliveryItem[] => {
-  return nodes.map((node: any) => {
+  return nodes.map((node) => {
     // Align mergedAt date to closedAt to simplify the logic downstream
     // We're only
     if (node.mergedAt !== undefined && node.mergedAt !== null) {
@@ -33,13 +33,13 @@ export const augmentNodes = (
         closedAt: node.mergedAt
       }
     }
-    const card = githubProjectCards.find(
-      (card: any) => card.content.id === node.id
-    )
+    const card = githubProjectCards.find((card) => card.content?.id === node.id)
+    let points = 0
+    let projectFields = {}
     if (card) {
       // Projects fields are not necessarily easy to parse
       // You can also refer to the source GraphQL query to learn more
-      const projectFields = card.fieldValues.nodes
+      projectFields = card.fieldValues.nodes
         .filter(
           (obj: GitHubProjectV2ItemFieldValue) => Object.keys(obj).length > 0
         )
@@ -71,12 +71,6 @@ export const augmentNodes = (
               case 'ProjectV2ItemFieldIterationValue':
                 acc[fieldName] = obj.title
                 break
-              default:
-                const typedObj = obj as { name?: string }
-                if (typedObj.name !== undefined) {
-                  acc[fieldName] = typedObj.name
-                }
-                break
             }
             return acc
           },
@@ -85,26 +79,25 @@ export const augmentNodes = (
       const pointsfield = card.fieldValues.nodes
         .filter((obj) => Object.keys(obj).length > 0)
         .find((obj) => obj.field.name === pointsField)
-      let points = 0
+
       if (pointsfield !== undefined) {
         if (pointsfield.__typename === 'ProjectV2ItemFieldNumberValue') {
           points = pointsfield.number
         }
       }
-      return {
-        ...node,
-        points: points,
-        type: node.__typename,
-        labels: node.labels.nodes.map((label: GitHubLabel) => label.name),
-        projectsV2: node.projectsV2.nodes.map(
-          (project: GitHubProject) => project.title
-        ),
-        project: {
-          ...projectFields
-        }
+    }
+    return {
+      ...node,
+      points: points,
+      type: node.__typename,
+      labels: node.labels.nodes.map((label: GitHubLabel) => label.name),
+      projectsV2: node.projectsV2.nodes.map(
+        (project: GitHubProject) => project.title
+      ),
+      project: {
+        ...projectFields
       }
     }
-    return node
   })
 }
 

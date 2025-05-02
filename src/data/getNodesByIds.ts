@@ -1,10 +1,7 @@
-/* eslint-disable  @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable  @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable  @typescript-eslint/no-explicit-any */
-/* eslint-disable  @typescript-eslint/no-unsafe-call */
 
 import * as core from '@actions/core'
-import { Octokit } from '@octokit/core'
+import * as github from '@actions/github'
 
 import {
   GitHubRateLimit,
@@ -21,7 +18,7 @@ interface GitHubNodeResponse {
 }
 
 export const getNodesByIds = async ({
-  octokit,
+  inputGithubToken,
   githubIds,
   graphQLQuery,
   increment = 50,
@@ -32,12 +29,14 @@ export const getNodesByIds = async ({
     resetAt: null
   }
 }: {
-  octokit: Octokit
+  inputGithubToken: string
   githubIds: string[]
   graphQLQuery: any
   increment?: number
   rateLimit?: GitHubRateLimit
 }): Promise<any> => {
+  const octokit = github.getOctokit(inputGithubToken)
+
   // After 3 consecutive API calls failures, stop the process with an error
   const maxRetries = 3
   let fetchedNodes: GitHubIssue[] | GitHubPullRequest[] = []
