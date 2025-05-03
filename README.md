@@ -81,6 +81,7 @@ movingWindow: 6 # in weeks, window to calculate moving average
 groups:
   - name: Metrics by ticket type
     description: This dashboards shows the number of tickets by type
+    defaultMetric: nodes
     streams:
       - name: Bugs
         description: 'Issues of type bug'
@@ -106,6 +107,9 @@ Some notable elements of the configuration:
     `{ $and: [{ type: { $eq: 'Issue' } }, { issueType: { $eq: null } }] }`.
 - For all other issues, we need to make sure we're excluding Pull Requests:
   - query: `{ type: { $eq: 'Issue' } }`.
+- You can choose between using nodes counts (value: `nodes`) or Story Points
+  (value: `points`) as the default view for the generated dashboards. This
+  default to points.
 
 ### HTML Dashboard
 
@@ -272,12 +276,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  get-org-repos:
+  get-metrics:
     runs-on: ubuntu-latest
     steps:
+      # Checkout need to retrieve the config file
+      - uses: actions/checkout@v4
       - name: Generate project metrics
         # Replace main by the release of your choice
-        uses: fgerthoffert/actions-get-org-repos@main
+        uses: fgerthoffert/actions-project-activity@main
         with:
           token: YOUR_TOKEN
           config: '.github/project-activity.yml'

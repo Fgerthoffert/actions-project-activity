@@ -48205,6 +48205,7 @@ const buildMetrics = async ({ nodes, config }) => {
             const calendarMetrics = populateCalendar(groupNodes, calendar);
             const groupCalendarWithMovingAverage = buildMovingAverage(calendarMetrics, config.movingWindow);
             const groupMetrics = {
+                ...group,
                 id: getId(group.name),
                 name: group.name,
                 description: group.description,

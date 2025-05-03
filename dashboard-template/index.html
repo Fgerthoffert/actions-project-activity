@@ -608,10 +608,17 @@
         document.getElementById('dashboard-metadata').textContent =
           `Last updated: ${groupMetrics.updatedAt}`
 
-        updateAllCharts('points')
+        const defaultMetric =
+          groupMetrics.defaultMetric !== undefined
+            ? groupMetrics.defaultMetric
+            : 'points'
+
+        updateAllCharts(defaultMetric)
 
         // Set up event listener for view mode switch
         const switchElement = document.getElementById('view-mode-switch')
+        switchElement.checked = defaultMetric === 'nodes'
+
         switchElement.addEventListener('change', toggleViewMode)
 
         updateStreamsTable(groupMetrics)

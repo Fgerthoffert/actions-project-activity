@@ -9,6 +9,7 @@ interface ConfigGroupStream {
 interface ConfigGroup {
   name: string
   description: string
+  defaultMetrics: 'points' | 'nodes'
   streams: ConfigGroupStream[]
 }
 

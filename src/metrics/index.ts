@@ -71,6 +71,7 @@ export const buildMetrics = async ({
           config.movingWindow
         )
         const groupMetrics = {
+          ...group,
           id: getId(group.name),
           name: group.name,
           description: group.description,
