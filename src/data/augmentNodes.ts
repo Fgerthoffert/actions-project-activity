@@ -41,7 +41,8 @@ export const augmentNodes = (
       // You can also refer to the source GraphQL query to learn more
       projectFields = card.fieldValues.nodes
         .filter(
-          (obj: GitHubProjectV2ItemFieldValue) => Object.keys(obj).length > 0
+          (obj: GitHubProjectV2ItemFieldValue) =>
+            obj && 'field' in obj && Object.keys(obj).length > 0
         )
         .reduce(
           (
@@ -52,7 +53,7 @@ export const augmentNodes = (
           ): {
             [key: string]: string | number | null | undefined
           } => {
-            const fieldName = obj.field?.name
+            const fieldName = 'field' in obj && obj.field?.name
             if (!fieldName) return acc
 
             switch (obj.__typename) {
@@ -78,10 +79,20 @@ export const augmentNodes = (
         )
       const pointsfield = card.fieldValues.nodes
         .filter((obj) => Object.keys(obj).length > 0)
-        .find((obj) => obj.field.name === pointsField)
+        .find(
+          (
+            obj
+          ): obj is GitHubProjectV2ItemFieldValue & {
+            field: { name: string }
+          } => 'field' in obj && obj.field?.name === pointsField
+        )
 
       if (pointsfield !== undefined) {
-        if (pointsfield.__typename === 'ProjectV2ItemFieldNumberValue') {
+        if (
+          pointsfield &&
+          '__typename' in pointsfield &&
+          pointsfield.__typename === 'ProjectV2ItemFieldNumberValue'
+        ) {
           points = pointsfield.number
         }
       }

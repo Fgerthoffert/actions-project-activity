@@ -53,7 +53,7 @@ export interface GitHubProjectCardEdge {
 export interface GitHubProjectCard {
   id: string
   updatedAt: string
-  content: GitHubIssue | GitHubPullRequest | null
+  content: GitHubIssueBase | GitHubPullRequestBase | null
   fieldValues: {
     nodes: GitHubProjectV2ItemFieldValue[]
   }
@@ -63,19 +63,49 @@ export interface GitHubLabel {
   name: string
 }
 
-interface GitHubIssuesOrPullRequestsAugmented {
+export interface GitHubIssueBase {
+  __typename: 'Issue'
+  id: string
+  updatedAt: string
+  closedAt: string | null
+}
+
+export interface GitHubIssue extends GitHubIssueBase {
+  title: string
+  number: number
+  closedAt: string | null
+  url: string
+  repository: GitHubRepository
+  milestone: GitHubMilestone | null
+  labels: {
+    nodes: GitHubLabel[]
+  }
+  projectsV2: {
+    nodes: GitHubProject[]
+  }
+  mergedAt: string | null
+  issueType: {
+    name: string
+  }
+}
+
+export interface GitHubIssueAugmented extends GitHubIssue {
   points?: number
   project?: {
     [key: string]: string
   }
 }
 
-export interface GitHubIssue extends GitHubIssuesOrPullRequestsAugmented {
-  __typename: 'Issue'
+export interface GitHubPullRequestBase {
+  __typename: 'PullRequest'
   id: string
+  updatedAt: string
+  closedAt: string | null
+}
+
+export interface GitHubPullRequest extends GitHubPullRequestBase {
   title: string
   number: number
-  closedAt: string | null
   url: string
   repository: GitHubRepository
   milestone: GitHubMilestone | null
@@ -85,26 +115,13 @@ export interface GitHubIssue extends GitHubIssuesOrPullRequestsAugmented {
   projectsV2: {
     nodes: GitHubProject[]
   }
-  updatedAt: string
   mergedAt: string | null
 }
 
-export interface GitHubPullRequest extends GitHubIssuesOrPullRequestsAugmented {
-  __typename: 'PullRequest'
-  id: string
-  title: string
-  number: number
-  updatedAt: string
-  mergedAt: string | null
-  closedAt: string | null
-  url: string
-  repository: GitHubRepository
-  milestone: GitHubMilestone | null
-  labels: {
-    nodes: GitHubLabel[]
-  }
-  projectsV2: {
-    nodes: GitHubProject[]
+export interface GitHubPullRequestAugmented extends GitHubPullRequest {
+  points?: number
+  project?: {
+    [key: string]: string
   }
 }
 

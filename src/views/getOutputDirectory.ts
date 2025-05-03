@@ -20,7 +20,6 @@ import * as core from '@actions/core'
 export const getOutputDirectory = async (
   folderName: string
 ): Promise<string> => {
-  console.log(folderName)
   if (!fs.existsSync(folderName)) {
     fs.mkdirSync(folderName, { recursive: true })
   }

@@ -34,7 +34,10 @@ export const getIssuesGraphQL = `
           nodes {
             title
           }
-        }          
+        }
+        issueType {
+          name
+        }                   
       }
     }
   }
