@@ -48292,7 +48292,8 @@ const buildViews = async ({ inputViewsOutputPath, groups }) => {
     for (const group of groups) {
         coreExports.info(`Building view for group ${group.name}`);
         const base64String = await Buffer.from(JSON.stringify(group)).toString('base64');
-        const updatedHtmlTemplate = tpl$1.replace('REPLACE_ME', base64String);
+        const decodedDashboardTemplate = Buffer.from(tpl$1, 'base64').toString('utf8');
+        const updatedHtmlTemplate = decodedDashboardTemplate.replace('REPLACE_ME', base64String);
         await writeHTMLTemplate(path__default.join(outputDir, `${group.id}.html`), updatedHtmlTemplate);
         indexRows.push({
             name: group.name,
@@ -48302,7 +48303,8 @@ const buildViews = async ({ inputViewsOutputPath, groups }) => {
     }
     // Create an index.html file listing all dashboards
     const base64StringIndex = await Buffer.from(JSON.stringify(indexRows)).toString('base64');
-    const updatedHtmlIndex = tpl.replace('REPLACE_ME', base64StringIndex);
+    const decodedIndexTemplate = Buffer.from(tpl, 'base64').toString('utf8');
+    const updatedHtmlIndex = decodedIndexTemplate.replace('REPLACE_ME', base64StringIndex);
     await writeHTMLTemplate(path__default.join(outputDir, 'index.html'), updatedHtmlIndex);
     return null;
 };

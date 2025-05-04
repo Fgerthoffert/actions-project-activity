@@ -24,7 +24,12 @@ export const buildViews = async ({
     const base64String = await Buffer.from(JSON.stringify(group)).toString(
       'base64'
     )
-    const updatedHtmlTemplate = dashboardTemplate.replace(
+
+    const decodedDashboardTemplate = Buffer.from(
+      dashboardTemplate,
+      'base64'
+    ).toString('utf8')
+    const updatedHtmlTemplate = decodedDashboardTemplate.replace(
       'REPLACE_ME',
       base64String
     )
@@ -43,7 +48,11 @@ export const buildViews = async ({
   const base64StringIndex = await Buffer.from(
     JSON.stringify(indexRows)
   ).toString('base64')
-  const updatedHtmlIndex = indexTemplate.replace(
+
+  const decodedIndexTemplate = Buffer.from(indexTemplate, 'base64').toString(
+    'utf8'
+  )
+  const updatedHtmlIndex = decodedIndexTemplate.replace(
     'REPLACE_ME',
     base64StringIndex
   )
