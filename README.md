@@ -132,6 +132,7 @@ At the bottom of each chart, the date corresponds to the first day of the week
       <img src="docs/delivery-dashboard-sample-weekly-completion.png" width="400" />
     </td>
     <td>
+      <b>Weekly Completion</b> <br />
       This chart shows nodes closed each week, expressed either in Story points or
       Issue Count (depending on the switch position). 
       <br /><br />
@@ -143,6 +144,7 @@ At the bottom of each chart, the date corresponds to the first day of the week
   </tr>
   <tr>
     <td>
+      <b>Weekly Velocity</b> <br />
       This chart displays the rolling average over the configured window (6 weeks by default)
       <br /><br />
       For example, in this screenshot, on average, the team was completing 4.4 bugs each week over the past 6 weeks.
@@ -156,6 +158,7 @@ At the bottom of each chart, the date corresponds to the first day of the week
       <img src="docs/delivery-dashboard-sample-weekly-distribution.png" width="400" />
     </td>
     <td>
+      <b>Effort distribution</b> <br />
       This chart shows the distribution of nodes per stream. 
       <br /><br />
       For example, during the week of April 20th, 41% of the completed issues were bugs.
