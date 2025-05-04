@@ -7,12 +7,12 @@ import * as path from 'path';
 import path__default from 'path';
 import require$$2$1 from 'http';
 import require$$3$1 from 'https';
-import require$$0$4 from 'net';
+import require$$0$5 from 'net';
 import require$$1 from 'tls';
 import require$$4$1 from 'events';
 import require$$0$3 from 'assert';
 import require$$0$2 from 'util';
-import require$$0$5 from 'stream';
+import require$$0$4 from 'stream';
 import require$$7 from 'buffer';
 import require$$8 from 'querystring';
 import require$$14 from 'stream/web';
@@ -1128,8 +1128,8 @@ function requireUtil$6 () {
 	const assert = require$$0$3;
 	const { kDestroyed, kBodyUsed } = requireSymbols$4();
 	const { IncomingMessage } = require$$2$1;
-	const stream = require$$0$5;
-	const net = require$$0$4;
+	const stream = require$$0$4;
+	const net = require$$0$5;
 	const { InvalidArgumentError } = requireErrors();
 	const { Blob } = require$$7;
 	const nodeUtil = require$$0$2;
@@ -8033,7 +8033,7 @@ function requireConnect () {
 	if (hasRequiredConnect) return connect;
 	hasRequiredConnect = 1;
 
-	const net = require$$0$4;
+	const net = require$$0$5;
 	const assert = require$$0$3;
 	const util = requireUtil$6();
 	const { InvalidArgumentError, ConnectTimeoutError } = requireErrors();
@@ -8800,9 +8800,9 @@ function requireClient () {
 	/* global WebAssembly */
 
 	const assert = require$$0$3;
-	const net = require$$0$4;
+	const net = require$$0$5;
 	const http = require$$2$1;
-	const { pipeline } = require$$0$5;
+	const { pipeline } = require$$0$4;
 	const util = requireUtil$6();
 	const timers = requireTimers();
 	const Request = requireRequest$1();
@@ -11971,7 +11971,7 @@ function requireReadable () {
 	hasRequiredReadable = 1;
 
 	const assert = require$$0$3;
-	const { Readable } = require$$0$5;
+	const { Readable } = require$$0$4;
 	const { RequestAbortedError, NotSupportedError, InvalidArgumentError } = requireErrors();
 	const util = requireUtil$6();
 	const { ReadableStreamFrom, toUSVString } = requireUtil$6();
@@ -12603,7 +12603,7 @@ function requireApiStream () {
 	if (hasRequiredApiStream) return apiStream;
 	hasRequiredApiStream = 1;
 
-	const { finished, PassThrough } = require$$0$5;
+	const { finished, PassThrough } = require$$0$4;
 	const {
 	  InvalidArgumentError,
 	  InvalidReturnValueError,
@@ -12835,7 +12835,7 @@ function requireApiPipeline () {
 	  Readable,
 	  Duplex,
 	  PassThrough
-	} = require$$0$5;
+	} = require$$0$4;
 	const {
 	  InvalidArgumentError,
 	  InvalidReturnValueError,
@@ -14128,7 +14128,7 @@ function requirePendingInterceptorsFormatter () {
 	if (hasRequiredPendingInterceptorsFormatter) return pendingInterceptorsFormatter;
 	hasRequiredPendingInterceptorsFormatter = 1;
 
-	const { Transform } = require$$0$5;
+	const { Transform } = require$$0$4;
 	const { Console } = require$$1$2;
 
 	/**
@@ -17154,7 +17154,7 @@ function requireFetch () {
 	} = requireConstants$3();
 	const { kHeadersList } = requireSymbols$4();
 	const EE = require$$4$1;
-	const { Readable, pipeline } = require$$0$5;
+	const { Readable, pipeline } = require$$0$4;
 	const { addAbortListener, isErrored, isReadable, nodeMajor, nodeMinor } = requireUtil$6();
 	const { dataURLProcessor, serializeAMimeType } = requireDataURL();
 	const { TransformStream } = require$$14;
@@ -23217,7 +23217,7 @@ function requireReceiver () {
 	if (hasRequiredReceiver) return receiver;
 	hasRequiredReceiver = 1;
 
-	const { Writable } = require$$0$5;
+	const { Writable } = require$$0$4;
 	const diagnosticsChannel = require$$0$9;
 	const { parserStates, opcodes, states, emptyBuffer } = requireConstants();
 	const { kReadyState, kSentClose, kResponse, kReceivedClose } = requireSymbols();
@@ -38902,14 +38902,24 @@ const bindable = bind.bind(bind);
 function bindApi(hook, state, name) {
   const removeHookRef = bindable(removeHook, null).apply(
     null,
-    [state]
+    name ? [state, name] : [state]
   );
   hook.api = { remove: removeHookRef };
   hook.remove = removeHookRef;
   ["before", "error", "after", "wrap"].forEach((kind) => {
-    const args = [state, kind];
+    const args = name ? [state, kind, name] : [state, kind];
     hook[kind] = hook.api[kind] = bindable(addHook, null).apply(null, args);
   });
+}
+
+function Singular() {
+  const singularHookName = Symbol("Singular");
+  const singularHookState = {
+    registry: {},
+  };
+  const singularHook = register.bind(null, singularHookState, singularHookName);
+  bindApi(singularHook, singularHookState, singularHookName);
+  return singularHook;
 }
 
 function Collection() {
@@ -38923,7 +38933,7 @@ function Collection() {
   return hook;
 }
 
-var Hook = { Collection };
+var Hook = { Singular, Collection };
 
 // pkg/dist-src/defaults.js
 
@@ -40143,7 +40153,7 @@ function paginateGraphQL(octokit) {
   };
 }
 
-var n=class{_eventListeners;_maxListeners;_logger;constructor(e){this._eventListeners=new Map,this._maxListeners=100,this._logger=e?.logger;}once(e,s){let t=(...r)=>{this.off(e,t),s(...r);};return this.on(e,t),this}listenerCount(e){if(!e)return this.getAllListeners().length;let s=this._eventListeners.get(e);return s?s.length:0}eventNames(){return Array.from(this._eventListeners.keys())}rawListeners(e){return e?this._eventListeners.get(e)??[]:this.getAllListeners()}prependListener(e,s){let t=this._eventListeners.get(e)??[];return t.unshift(s),this._eventListeners.set(e,t),this}prependOnceListener(e,s){let t=(...r)=>{this.off(e,t),s(...r);};return this.prependListener(e,t),this}maxListeners(){return this._maxListeners}addListener(e,s){return this.on(e,s),this}on(e,s){this._eventListeners.has(e)||this._eventListeners.set(e,[]);let t=this._eventListeners.get(e);return t&&(t.length>=this._maxListeners&&console.warn(`MaxListenersExceededWarning: Possible event memory leak detected. ${t.length+1} ${e} listeners added. Use setMaxListeners() to increase limit.`),t.push(s)),this}removeListener(e,s){return this.off(e,s),this}off(e,s){let t=this._eventListeners.get(e)??[],r=t.indexOf(s);return r!==-1&&t.splice(r,1),t.length===0&&this._eventListeners.delete(e),this}emit(e,...s){let t=false,r=this._eventListeners.get(e);if(r&&r.length>0)for(let i of r)i(...s),t=true;return t}listeners(e){return this._eventListeners.get(e)??[]}removeAllListeners(e){return e?this._eventListeners.delete(e):this._eventListeners.clear(),this}setMaxListeners(e){this._maxListeners=e;for(let s of this._eventListeners.values())s.length>e&&s.splice(e);}getAllListeners(){let e=new Array;for(let s of this._eventListeners.values())e=e.concat(s);return e}};var l=class extends n{_hooks;_throwHookErrors=false;constructor(e){super({logger:e?.logger}),this._hooks=new Map,e?.throwHookErrors!==void 0&&(this._throwHookErrors=e.throwHookErrors);}get hooks(){return this._hooks}get throwHookErrors(){return this._throwHookErrors}set throwHookErrors(e){this._throwHookErrors=e;}get logger(){return this._logger}set logger(e){this._logger=e;}onHook(e,s){let t=this._hooks.get(e);t?t.push(s):this._hooks.set(e,[s]);}prependHook(e,s){let t=this._hooks.get(e);t?t.unshift(s):this._hooks.set(e,[s]);}prependOnceHook(e,s){let t=async(...r)=>(this.removeHook(e,t),s(...r));this.prependHook(e,t);}onceHook(e,s){let t=async(...r)=>(this.removeHook(e,t),s(...r));this.onHook(e,t);}removeHook(e,s){let t=this._hooks.get(e);if(t){let r=t.indexOf(s);r!==-1&&t.splice(r,1);}}async hook(e,...s){let t=this._hooks.get(e);if(t)for(let r of t)try{await r(...s);}catch(i){let o=`${e}: ${i.message}`;if(this.emit("error",new Error(o)),this._logger&&this._logger.error(o),this._throwHookErrors)throw new Error(o)}}getHooks(e){return this._hooks.get(e)}clearHooks(){this._hooks.clear();}};
+var n=class{_eventListeners;_maxListeners;_logger;constructor(e){this._eventListeners=new Map,this._maxListeners=100,this._logger=e?.logger;}once(e,s){let t=(...r)=>{this.off(e,t),s(...r);};return this.on(e,t),this}listenerCount(e){if(!e)return this.getAllListeners().length;let s=this._eventListeners.get(e);return s?s.length:0}eventNames(){return Array.from(this._eventListeners.keys())}rawListeners(e){return e?this._eventListeners.get(e)??[]:this.getAllListeners()}prependListener(e,s){let t=this._eventListeners.get(e)??[];return t.unshift(s),this._eventListeners.set(e,t),this}prependOnceListener(e,s){let t=(...r)=>{this.off(e,t),s(...r);};return this.prependListener(e,t),this}maxListeners(){return this._maxListeners}addListener(e,s){return this.on(e,s),this}on(e,s){this._eventListeners.has(e)||this._eventListeners.set(e,[]);let t=this._eventListeners.get(e);return t&&(t.length>=this._maxListeners&&console.warn(`MaxListenersExceededWarning: Possible event memory leak detected. ${t.length+1} ${e} listeners added. Use setMaxListeners() to increase limit.`),t.push(s)),this}removeListener(e,s){return this.off(e,s),this}off(e,s){let t=this._eventListeners.get(e)??[],r=t.indexOf(s);return r!==-1&&t.splice(r,1),t.length===0&&this._eventListeners.delete(e),this}emit(e,...s){let t=!1,r=this._eventListeners.get(e);if(r&&r.length>0)for(let i of r)i(...s),t=!0;return t}listeners(e){return this._eventListeners.get(e)??[]}removeAllListeners(e){return e?this._eventListeners.delete(e):this._eventListeners.clear(),this}setMaxListeners(e){this._maxListeners=e;for(let s of this._eventListeners.values())s.length>e&&s.splice(e);}getAllListeners(){let e=new Array;for(let s of this._eventListeners.values())e=e.concat(s);return e}};var l=class extends n{_hooks;_throwHookErrors=!1;constructor(e){super({logger:e?.logger}),this._hooks=new Map,e?.throwHookErrors!==void 0&&(this._throwHookErrors=e.throwHookErrors);}get hooks(){return this._hooks}get throwHookErrors(){return this._throwHookErrors}set throwHookErrors(e){this._throwHookErrors=e;}get logger(){return this._logger}set logger(e){this._logger=e;}onHook(e,s){let t=this._hooks.get(e);t?t.push(s):this._hooks.set(e,[s]);}prependHook(e,s){let t=this._hooks.get(e);t?t.unshift(s):this._hooks.set(e,[s]);}prependOnceHook(e,s){let t=async(...r)=>(this.removeHook(e,t),s(...r));this.prependHook(e,t);}onceHook(e,s){let t=async(...r)=>(this.removeHook(e,t),s(...r));this.onHook(e,t);}removeHook(e,s){let t=this._hooks.get(e);if(t){let r=t.indexOf(s);r!==-1&&t.splice(r,1);}}async hook(e,...s){let t=this._hooks.get(e);if(t)for(let r of t)try{await r(...s);}catch(i){let o=`${e}: ${i.message}`;if(this.emit("error",new Error(o)),this._logger&&this._logger.error(o),this._throwHookErrors)throw new Error(o)}}getHooks(e){return this._hooks.get(e)}clearHooks(){this._hooks.clear();}};
 
 // src/index.ts
 
@@ -47528,6 +47538,7 @@ useOperators(OpType.PROJECTION, projectionOperators);
 useOperators(OpType.QUERY, queryOperators);
 
 ({
+  cloneMode: "copy",
   queryOptions: initOptions({
     context: Context.init().addQueryOps(queryOperators).addExpressionOps(booleanOperators).addExpressionOps(comparisonOperators)
   })
@@ -48285,7 +48296,658 @@ const writeHTMLTemplate = async (viewPath, viewContent) => {
     return null;
 };
 
+var tpl = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Projects Activity</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@4.1.0/cdn.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 1800px;
+        margin: 0 auto;
+      }
+      .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .dashboard-title {
+        margin: 0;
+      }
+      .row {
+        display: flex;
+        margin-bottom: 30px;
+        gap: 20px;
+      }
+      .chart-container {
+        flex: 1;
+        height: 300px;
+        border: 1px solid #eaeaea;
+        border-radius: 5px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      th,
+      td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      th {
+        background-color: #f8f8f8;
+        font-weight: bold;
+      }
+      tr:hover {
+        background-color: #f5f5f5;
+      }
+      a {
+        color: #1a73e8;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .table-container {
+        margin-top: 20px;
+        border: 1px solid #eaeaea;
+        border-radius: 5px;
+        padding: 15px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .table-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        margin-bottom: 5px;
+      }
+      .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      h2,
+      h3 {
+        margin: 0;
+        color: #444;
+      }
+      .source-description {
+        font-style: italic;
+        color: #666;
+      }
+      .source-info {
+        font-style: italic;
+        font-size: smaller;
+        color: #666;
+      }
+      /* Switch button styles */
+      .switch-container {
+        display: flex;
+        align-items: center;
+      }
+      .switch-label {
+        margin: 0 10px;
+        font-weight: bold;
+        font-size: 14px;
+      }
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 28px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.4s;
+        border-radius: 34px;
+      }
+      .slider:before {
+        position: absolute;
+        content: '';
+        height: 20px;
+        width: 20px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background-color: #2196f3;
+      }
+      input:focus + .slider {
+        box-shadow: 0 0 1px #2196f3;
+      }
+      input:checked + .slider:before {
+        transform: translateX(32px);
+      }
+      .view-mode {
+        margin-left: 8px;
+        font-weight: bold;
+        min-width: 90px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="dashboard-header">
+        <h2 id="dashboard-title" class="dashboard-title"></h2>
+        <div class="switch-container">
+          <span class="switch-label">Story Points</span>
+          <label class="switch">
+            <input type="checkbox" id="view-mode-switch" />
+            <span class="slider"></span>
+          </label>
+          <span class="switch-label">Count</span>
+        </div>
+      </div>
+      <p class="source-description" id="dashboard-description"></p>
+      <p class="source-info" id="dashboard-metadata"></p>
+
+      <div class="row">
+        <div class="chart-container" id="weeklycompletionchart"></div>
+        <div class="chart-container" id="weeklyvelocitychart"></div>
+        <div class="chart-container" id="effortdistributionchart"></div>
+      </div>
+
+      <div class="table-container">
+        <div class="table-header">
+          <h3 id="table-title"></h3>
+          <span id="selected-source"
+            >Click on any chart bar to see details</span
+          >
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Title</th>
+              <th>Type</th>
+              <th>Repo</th>
+              <th>Milestone</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody id="details-table">
+            <tr>
+              <td colspan="3">No data selected</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-container">
+        <div class="table-header">
+          <h3>Data Streams</h3>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Query</th>
+            </tr>
+          </thead>
+          <tbody id="details-table-stream">
+            <tr>
+              <td colspan="3">No data selected</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="table-footer">
+          <span
+            ><i
+              >Streams are queries executed against ALL Issues and Pull Requests
+              (PR) attached to the selected project. <br />
+              Their order matters, if a Issue or PR is present in the first
+              stream, it will be ignored on the following streams. This prevents
+              issues/PRs from being counted multiple times.</i
+            ></span
+          >
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Single JavaScript data object containing all our data
+      const srcData = atob('REPLACE_ME')
+      const groupMetrics = JSON.parse(srcData)
+      console.log('Source data decoded', groupMetrics)
+
+      // Copied to the window object to facilitate building of queries
+      window.dataNodes = groupMetrics.nodes
+
+      document.title = groupMetrics.name
+
+      // Update the table with data clicked in the chart
+      function updateTable({ srcChart, selection, nodes }) {
+        console.log('Updating table with data coming from:', srcChart)
+
+        document.getElementById('table-title').textContent =
+          \`Nodes from ${srcChart}\`
+        document.getElementById('selected-source').textContent =
+          \`Selection: ${selection}\`
+
+        const tableBody = document.getElementById('details-table')
+        tableBody.innerHTML = ''
+
+        nodes.forEach((node) => {
+          const row = document.createElement('tr')
+          row.innerHTML = \`
+                <td>${node.number}</td>
+                <td><a href="${node.url}" target="_blank">${node.title}</a></td>
+                <td>${node.type}</td>
+                <td><a href="${node.repository.url}" target="_blank">${node.repository.owner.login}/${node.repository.name}</a></td>
+                <td>${node.milestone?.title ? node.milestone?.title : ''}</td>
+                <td>${node.points}</td>
+              \`
+          tableBody.appendChild(row)
+        })
+      }
+
+      function updateStreamsTable(srcData) {
+        const tableBody = document.getElementById('details-table-stream')
+        tableBody.innerHTML = ''
+
+        srcData.streams.forEach((stream) => {
+          const row = document.createElement('tr')
+          row.innerHTML = \`
+                <td>${stream.name}</td>
+                <td>${stream.description}</td>
+                <td>${JSON.stringify(stream.query)}</td>
+              \`
+          tableBody.appendChild(row)
+        })
+      }
+
+      function createWeeklyCompletionChart(elementId, data, metric) {
+        const chartDom = document.getElementById(elementId)
+        const myChart = echarts.init(chartDom)
+
+        const visibleCount = 20
+        const startPercentage =
+          ((data.weeks.length - visibleCount) / data.weeks.length) * 100
+        const endPercentage = 100
+
+        const chartTitle = 'Weekly Completion'
+
+        const highestValue = Math.max(
+          ...data.weeks.map((week) => week.metrics.nodes.count)
+        )
+        const roundUpHighest = Math.ceil(highestValue / 10) * 10
+
+        const option = {
+          title: {
+            text: chartTitle,
+            position: 'top',
+            left: 'center',
+            textStyle: {
+              fontSize: 14
+            }
+          },
+          legend: {
+            top: 'top',
+            left: 'center',
+            top: 30
+          },
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'shadow'
+            }
+          },
+          grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            top: '30%',
+            containLabel: true
+          },
+          dataZoom: [
+            {
+              type: 'inside', // Allows scrolling with mouse or touch gestures
+              xAxisIndex: 0,
+              start: startPercentage,
+              end: endPercentage
+            }
+          ],
+          xAxis: {
+            type: 'category',
+            axisLabel: { interval: 0, rotate: 30 },
+            data: data.weeks.map((value, index) =>
+              dateFns.format(new Date(value.firstDay), 'LLL do')
+            )
+          },
+          yAxis: {
+            type: 'value',
+            min: 0,
+            max: roundUpHighest
+          },
+          series: [
+            ...data.streams.map((stream, index) => {
+              return {
+                name: stream.name,
+                type: 'bar',
+                stack: 'ad',
+                data: stream.weeks.map(
+                  (value, index) => value.metrics[metric].count
+                )
+              }
+            }),
+            {
+              name: 'Total',
+              type: 'line',
+              data: data.weeks.map((week, index) => week.metrics[metric].count)
+            }
+          ]
+        }
+
+        // Apply options to chart
+        myChart.setOption(option)
+
+        // Add click event for interactivity
+        myChart.on('click', function (params) {
+          const streamName = params.seriesName
+          const streamIndex = params.dataIndex
+          const stream = data.streams.find(
+            (stream) => stream.name === streamName
+          )
+          if (stream && stream.weeks[streamIndex]) {
+            updateTable({
+              srcChart: chartTitle,
+              selection: \`${streamName} on ${dateFns.format(new Date(stream.weeks[streamIndex].firstDay), 'LLL do')} (${stream.weeks[streamIndex].nodes.length} nodes)\`,
+              nodes: stream.weeks[streamIndex].nodes
+            })
+          }
+        })
+
+        // Make chart responsive
+        window.addEventListener('resize', function () {
+          myChart.resize()
+        })
+
+        return myChart
+      }
+
+      function createWeeklyVelocityChart(elementId, data, metric) {
+        const chartDom = document.getElementById(elementId)
+        const myChart = echarts.init(chartDom)
+
+        const visibleCount = 20
+        const startPercentage =
+          ((data.weeks.length - visibleCount) / data.weeks.length) * 100
+        const endPercentage = 100
+
+        const chartTitle = 'Weekly Velocity'
+
+        const highestValue = Math.max(
+          ...data.weeks.map((week) => week.metrics.nodes.velocity)
+        )
+        const roundUpHighest = Math.ceil(highestValue / 10) * 10
+
+        const option = {
+          title: {
+            text: chartTitle,
+            position: 'top',
+            left: 'center',
+            textStyle: {
+              fontSize: 14
+            }
+          },
+          legend: {
+            top: 'top',
+            left: 'center',
+            top: 30
+          },
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'shadow'
+            }
+          },
+          grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            top: '30%',
+            containLabel: true
+          },
+          dataZoom: [
+            {
+              type: 'inside', // Allows scrolling with mouse or touch gestures
+              xAxisIndex: 0,
+              start: startPercentage,
+              end: endPercentage
+            }
+          ],
+          xAxis: {
+            type: 'category',
+            axisLabel: { interval: 0, rotate: 30 },
+            data: data.weeks.map((value, index) =>
+              dateFns.format(new Date(value.firstDay), 'LLL do')
+            )
+          },
+          yAxis: {
+            type: 'value',
+            min: 0,
+            max: roundUpHighest
+          },
+          series: [
+            ...data.streams.map((stream, index) => {
+              return {
+                name: stream.name,
+                type: 'line',
+                data: stream.weeks.map(
+                  (value, index) => value.metrics[metric].velocity
+                )
+              }
+            }),
+            {
+              name: 'Total',
+              type: 'line',
+              data: data.weeks.map(
+                (week, index) => week.metrics[metric].velocity
+              )
+            }
+          ]
+        }
+
+        // Apply options to chart
+        myChart.setOption(option)
+
+        // Make chart responsive
+        window.addEventListener('resize', function () {
+          myChart.resize()
+        })
+
+        return myChart
+      }
+
+      function createEffortDistributionChart(elementId, data, metric) {
+        const chartDom = document.getElementById(elementId)
+        const myChart = echarts.init(chartDom)
+
+        const visibleCount = 20
+        const startPercentage =
+          ((data.weeks.length - visibleCount) / data.weeks.length) * 100
+        const endPercentage = 100
+
+        const chartTitle = 'Effort Distribution (%)'
+
+        const option = {
+          title: {
+            text: chartTitle,
+            position: 'top',
+            left: 'center',
+            textStyle: {
+              fontSize: 14
+            }
+          },
+          legend: {
+            top: 'top',
+            left: 'center',
+            top: 30
+          },
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'shadow'
+            }
+          },
+          grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            top: '30%',
+            containLabel: true
+          },
+          dataZoom: [
+            {
+              type: 'inside', // Allows scrolling with mouse or touch gestures
+              xAxisIndex: 0,
+              start: startPercentage,
+              end: endPercentage
+            }
+          ],
+          xAxis: {
+            type: 'category',
+            axisLabel: { interval: 0, rotate: 30 },
+            data: data.weeks.map((value, index) =>
+              dateFns.format(new Date(value.firstDay), 'LLL do')
+            )
+          },
+          yAxis: {
+            type: 'value',
+            min: 0,
+            max: 100
+          },
+          series: [
+            ...data.streams.map((stream, index) => {
+              return {
+                name: stream.name,
+                type: 'bar',
+                stack: 'ad',
+                data: stream.weeks.map(
+                  (value, index) => value.metrics[metric].distribution
+                ),
+                barWidth: '100%', // Ensures bars fill their allocated space
+                barGap: '0%', // Removes spacing between series (if multiple)
+                barCategoryGap: '0%' // Removes spacing between categories
+              }
+            })
+          ]
+        }
+
+        // Apply options to chart
+        myChart.setOption(option)
+
+        // Add click event for interactivity
+        myChart.on('click', function (params) {
+          const streamName = params.seriesName
+          const streamIndex = params.dataIndex
+          const stream = data.streams.find(
+            (stream) => stream.name === streamName
+          )
+          if (stream && stream.weeks[streamIndex]) {
+            updateTable({
+              srcChart: chartTitle,
+              selection: \`${streamName} on ${dateFns.format(new Date(stream.weeks[streamIndex].firstDay), 'LLL do')} (${stream.weeks[streamIndex].nodes.length} nodes)\`,
+              nodes: stream.weeks[streamIndex].nodes
+            })
+          }
+        })
+
+        // Make chart responsive
+        window.addEventListener('resize', function () {
+          myChart.resize()
+        })
+
+        return myChart
+      }
+
+      function toggleViewMode() {
+        const switchElement = document.getElementById('view-mode-switch')
+
+        updateAllCharts(switchElement.checked ? 'nodes' : 'points')
+      }
+
+      // Function to initialize the dashboard metadata
+      function initializeDashboard() {
+        // Set dashboard title and metadata from the data object
+        document.getElementById('dashboard-title').textContent =
+          groupMetrics.name
+        document.getElementById('dashboard-description').textContent =
+          groupMetrics.description
+        document.getElementById('dashboard-metadata').textContent =
+          \`Last updated: ${groupMetrics.updatedAt}\`
+
+        const defaultMetric =
+          groupMetrics.defaultMetric !== undefined
+            ? groupMetrics.defaultMetric
+            : 'points'
+
+        updateAllCharts(defaultMetric)
+
+        // Set up event listener for view mode switch
+        const switchElement = document.getElementById('view-mode-switch')
+        switchElement.checked = defaultMetric === 'nodes'
+
+        switchElement.addEventListener('change', toggleViewMode)
+
+        updateStreamsTable(groupMetrics)
+      }
+
+      function updateAllCharts(metric) {
+        console.log('Updating all charts to display metric:', metric)
+        createWeeklyCompletionChart(
+          'weeklycompletionchart',
+          groupMetrics,
+          metric
+        )
+
+        createWeeklyVelocityChart('weeklyvelocitychart', groupMetrics, metric)
+
+        createEffortDistributionChart(
+          'effortdistributionchart',
+          groupMetrics,
+          metric
+        )
+      }
+
+      // Initialize all charts when DOM is loaded
+      document.addEventListener('DOMContentLoaded', initializeDashboard)
+    </script>
+  </body>
+</html>
+`;
+
 const buildViews = async ({ inputViewsOutputPath, groups }) => {
+    console.log(tpl);
     const outputDir = await getOutputDirectory(inputViewsOutputPath);
     const htmlTemplatesPath = path__default.join(process.cwd(), 'dist', 'templates');
     const htmlDashboardTemplate = path__default.join(htmlTemplatesPath, 'group-view.html');
