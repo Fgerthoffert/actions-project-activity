@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Dashboards</title>
+    <style>
+      :root {
+        --primary-color: #3498db;
+        --secondary-color: #2c3e50;
+        --accent-color: #e74c3c;
+        --light-bg: #f8f9fa;
+        --border-color: #dee2e6;
+        --text-color: #333;
+        --text-light: #6c757d;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: var(--text-color);
+        background-color: var(--light-bg);
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+      }
+
+      header {
+        margin-bottom: 30px;
+        text-align: center;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      h1 {
+        color: var(--secondary-color);
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+      }
+
+      .subtitle {
+        color: var(--text-light);
+        font-size: 1.2rem;
+      }
+
+      .dashboard-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+      }
+
+      .dashboard-table th {
+        background-color: var(--secondary-color);
+        color: white;
+        text-align: left;
+        padding: 12px 15px;
+      }
+
+      .dashboard-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .dashboard-table tr:nth-child(even) {
+        background-color: var(--light-bg);
+      }
+
+      .dashboard-table tr:hover {
+        background-color: rgba(52, 152, 219, 0.1);
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 8px 15px;
+        background-color: var(--primary-color);
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+      }
+
+      .btn:hover {
+        background-color: #2980b9;
+        transform: translateY(-2px);
+      }
+
+      footer {
+        margin-top: 30px;
+        text-align: center;
+        color: var(--text-light);
+        font-size: 0.9rem;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .last-updated {
+        margin-top: 10px;
+        font-style: italic;
+      }
+
+      @media (max-width: 768px) {
+        .dashboard-table {
+          display: block;
+          overflow-x: auto;
+        }
+
+        .container {
+          padding: 15px;
+        }
+
+        h1 {
+          font-size: 2rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Available Dashboards</h1>
+      </header>
+
+      <main>
+        <table class="dashboard-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Access</th>
+            </tr>
+          </thead>
+          <tbody id="dashboard-table-body">
+            <!-- Table rows will be dynamically inserted here -->
+          </tbody>
+        </table>
+      </main>
+    </div>
+
+    <script>
+      const srcData = atob('REPLACE_ME')
+      const dashboards = JSON.parse(srcData)
+      console.log('Source data decoded', dashboards)
+
+      // Function to populate the table
+      function populateDashboardTable() {
+        const tableBody = document.getElementById('dashboard-table-body')
+
+        dashboards.forEach((dashboard) => {
+          const row = document.createElement('tr')
+
+          // Dashboard name cell
+          const nameCell = document.createElement('td')
+          nameCell.textContent = dashboard.name
+          row.appendChild(nameCell)
+
+          // Description cell
+          const descCell = document.createElement('td')
+          descCell.textContent = dashboard.description
+          row.appendChild(descCell)
+
+          // Access button cell
+          const accessCell = document.createElement('td')
+          const accessLink = document.createElement('a')
+          accessLink.href = dashboard.link
+          accessLink.className = 'btn'
+          accessLink.textContent = 'View Dashboard'
+          accessCell.appendChild(accessLink)
+          row.appendChild(accessCell)
+
+          tableBody.appendChild(row)
+        })
+      }
+
+      // Populate table when the DOM is fully loaded
+      document.addEventListener('DOMContentLoaded', populateDashboardTable)
+    </script>
+  </body>
+</html>

@@ -3,12 +3,12 @@ import require$$0__default from 'os';
 import require$$0$1 from 'crypto';
 import * as fs from 'fs';
 import fs__default from 'fs';
-import * as require$$1 from 'path';
-import require$$1__default from 'path';
+import * as path from 'path';
+import path__default from 'path';
 import require$$2$1 from 'http';
 import require$$3$1 from 'https';
 import require$$0$4 from 'net';
-import require$$1$1 from 'tls';
+import require$$1 from 'tls';
 import require$$4$1 from 'events';
 import require$$0$3 from 'assert';
 import require$$0$2 from 'util';
@@ -17,20 +17,20 @@ import require$$7 from 'buffer';
 import require$$8 from 'querystring';
 import require$$14 from 'stream/web';
 import require$$0$7 from 'node:stream';
-import require$$1$2 from 'node:util';
+import require$$1$1 from 'node:util';
 import require$$0$6 from 'node:events';
 import require$$0$8 from 'worker_threads';
 import require$$2$2 from 'perf_hooks';
 import require$$5 from 'util/types';
 import require$$4$2 from 'async_hooks';
-import require$$1$3 from 'console';
-import require$$1$4 from 'url';
+import require$$1$2 from 'console';
+import require$$1$3 from 'url';
 import require$$3$2 from 'zlib';
 import require$$6 from 'string_decoder';
 import require$$0$9 from 'diagnostics_channel';
 import require$$2$3 from 'child_process';
 import require$$6$1 from 'timers';
-import path from 'node:path';
+import path$1 from 'node:path';
 import fs$1 from 'node:fs';
 import * as crypto from 'node:crypto';
 
@@ -407,7 +407,7 @@ var hasRequiredTunnel$1;
 function requireTunnel$1 () {
 	if (hasRequiredTunnel$1) return tunnel$1;
 	hasRequiredTunnel$1 = 1;
-	var tls = require$$1$1;
+	var tls = require$$1;
 	var http = require$$2$1;
 	var https = require$$3$1;
 	var events = require$$4$1;
@@ -1789,7 +1789,7 @@ function requireSbmh () {
 	 * by Hongli Lai at: https://github.com/FooBarWidget/boyer-moore-horspool
 	 */
 	const EventEmitter = require$$0$6.EventEmitter;
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$1.inherits;
 
 	function SBMH (needle) {
 	  if (typeof needle === 'string') {
@@ -1998,7 +1998,7 @@ function requirePartStream () {
 	if (hasRequiredPartStream) return PartStream_1;
 	hasRequiredPartStream = 1;
 
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$1.inherits;
 	const ReadableStream = require$$0$7.Readable;
 
 	function PartStream (opts) {
@@ -2044,7 +2044,7 @@ function requireHeaderParser () {
 	hasRequiredHeaderParser = 1;
 
 	const EventEmitter = require$$0$6.EventEmitter;
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$1.inherits;
 	const getLimit = requireGetLimit();
 
 	const StreamSearch = requireSbmh();
@@ -2152,7 +2152,7 @@ function requireDicer () {
 	hasRequiredDicer = 1;
 
 	const WritableStream = require$$0$7.Writable;
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$1.inherits;
 
 	const StreamSearch = requireSbmh();
 
@@ -2729,7 +2729,7 @@ function requireMultipart () {
 	//     -- this will require modifications to utils.parseParams
 
 	const { Readable } = require$$0$7;
-	const { inherits } = require$$1$2;
+	const { inherits } = require$$1$1;
 
 	const Dicer = requireDicer();
 
@@ -3295,7 +3295,7 @@ function requireMain () {
 	hasRequiredMain = 1;
 
 	const WritableStream = require$$0$7.Writable;
-	const { inherits } = require$$1$2;
+	const { inherits } = require$$1$1;
 	const Dicer = requireDicer();
 
 	const MultipartParser = requireMultipart();
@@ -8119,7 +8119,7 @@ function requireConnect () {
 	    let socket;
 	    if (protocol === 'https:') {
 	      if (!tls) {
-	        tls = require$$1$1;
+	        tls = require$$1;
 	      }
 	      servername = servername || options.servername || util.getServerName(host) || null;
 
@@ -14129,7 +14129,7 @@ function requirePendingInterceptorsFormatter () {
 	hasRequiredPendingInterceptorsFormatter = 1;
 
 	const { Transform } = require$$0$5;
-	const { Console } = require$$1$3;
+	const { Console } = require$$1$2;
 
 	/**
 	 * Gets the output of `console.table(…)` as a string.
@@ -14356,7 +14356,7 @@ function requireProxyAgent () {
 	hasRequiredProxyAgent = 1;
 
 	const { kProxy, kClose, kDestroy, kInterceptors } = requireSymbols$4();
-	const { URL } = require$$1$4;
+	const { URL } = require$$1$3;
 	const Agent = requireAgent();
 	const Pool = requirePool();
 	const DispatcherBase = requireDispatcherBase();
@@ -25541,7 +25541,7 @@ function requirePathUtils () {
 	};
 	Object.defineProperty(pathUtils, "__esModule", { value: true });
 	pathUtils.toPlatformPath = pathUtils.toWin32Path = pathUtils.toPosixPath = void 0;
-	const path = __importStar(require$$1__default);
+	const path = __importStar(path__default);
 	/**
 	 * toPosixPath converts the given path to the posix form. On Windows, \\ will be
 	 * replaced with /.
@@ -25628,7 +25628,7 @@ function requireIoUtil () {
 		Object.defineProperty(exports, "__esModule", { value: true });
 		exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.READONLY = exports.UV_FS_O_EXLOCK = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rm = exports.rename = exports.readlink = exports.readdir = exports.open = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
 		const fs = __importStar(fs__default);
-		const path = __importStar(require$$1__default);
+		const path = __importStar(path__default);
 		_a = fs.promises
 		// export const {open} = 'fs'
 		, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.open = _a.open, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rm = _a.rm, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
@@ -25818,7 +25818,7 @@ function requireIo () {
 	Object.defineProperty(io, "__esModule", { value: true });
 	io.findInPath = io.which = io.mkdirP = io.rmRF = io.mv = io.cp = void 0;
 	const assert_1 = require$$0$3;
-	const path = __importStar(require$$1__default);
+	const path = __importStar(path__default);
 	const ioUtil = __importStar(requireIoUtil());
 	/**
 	 * Copies a file or folder.
@@ -26126,7 +26126,7 @@ function requireToolrunner () {
 	const os = __importStar(require$$0__default);
 	const events = __importStar(require$$4$1);
 	const child = __importStar(require$$2$3);
-	const path = __importStar(require$$1__default);
+	const path = __importStar(path__default);
 	const io = __importStar(requireIo());
 	const ioUtil = __importStar(requireIoUtil());
 	const timers_1 = require$$6$1;
@@ -26970,7 +26970,7 @@ function requireCore () {
 		const file_command_1 = requireFileCommand();
 		const utils_1 = requireUtils$3();
 		const os = __importStar(require$$0__default);
-		const path = __importStar(require$$1__default);
+		const path = __importStar(path__default);
 		const oidc_utils_1 = requireOidcUtils();
 		/**
 		 * The code to exit an action
@@ -38743,7 +38743,7 @@ const getId = (string) => {
  * @throws Will throw an error if the directory cannot be created.
  */
 const getCacheDirectory = async (folderName) => {
-    const dataCacheDir = require$$1.join(require$$0.tmpdir(), folderName);
+    const dataCacheDir = path.join(require$$0.tmpdir(), folderName);
     if (!fs.existsSync(dataCacheDir)) {
         fs.mkdirSync(dataCacheDir, { recursive: true });
     }
@@ -41079,7 +41079,7 @@ var FlatCache = class extends l {
   // eslint-disable-next-line unicorn/prevent-abbreviations
   load(cacheId, cacheDir) {
     try {
-      const filePath = path.resolve(`${cacheDir ?? this._cacheDir}/${cacheId ?? this._cacheId}`);
+      const filePath = path$1.resolve(`${cacheDir ?? this._cacheDir}/${cacheId ?? this._cacheId}`);
       this.loadFile(filePath);
       this.emit("load" /* LOAD */);
     } catch (error) {
@@ -41128,7 +41128,7 @@ var FlatCache = class extends l {
    * @returns {String}
    */
   get cacheFilePath() {
-    return path.resolve(`${this._cacheDir}/${this._cacheId}`);
+    return path$1.resolve(`${this._cacheDir}/${this._cacheId}`);
   }
   /**
    * Returns the path to the cache directory
@@ -41136,7 +41136,7 @@ var FlatCache = class extends l {
    * @returns {String}
    */
   get cacheDirPath() {
-    return path.resolve(this._cacheDir);
+    return path$1.resolve(this._cacheDir);
   }
   /**
    * Returns an array with all the keys in the cache
@@ -48287,13 +48287,27 @@ const writeHTMLTemplate = async (viewPath, viewContent) => {
 
 const buildViews = async ({ inputViewsOutputPath, groups }) => {
     const outputDir = await getOutputDirectory(inputViewsOutputPath);
-    const HtmlTemplate = await loadHTMLTemplate('/Users/fgerthoffert/GitHub/fgerthoffert/actions-project-activity/dashboard-template/index.html');
+    const htmlTemplatesPath = path__default.join(process.cwd(), 'dist', 'templates');
+    const htmlDashboardTemplate = path__default.join(htmlTemplatesPath, 'group-view.html');
+    const htmlTemplate = await loadHTMLTemplate(htmlDashboardTemplate);
+    const indexRows = [];
     for (const group of groups) {
         coreExports.info(`Building view for group ${group.name}`);
         const base64String = await Buffer.from(JSON.stringify(group)).toString('base64');
-        const updatedHtmlTemplate = HtmlTemplate.replace('REPLACE_ME', base64String);
-        await writeHTMLTemplate(require$$1__default.join(outputDir, `${group.id}.html`), updatedHtmlTemplate);
+        const updatedHtmlTemplate = htmlTemplate.replace('REPLACE_ME', base64String);
+        await writeHTMLTemplate(path__default.join(outputDir, `${group.id}.html`), updatedHtmlTemplate);
+        indexRows.push({
+            name: group.name,
+            description: group.description,
+            link: `${group.id}.html`
+        });
     }
+    // Create an index.html file listing all dashboards
+    const htmlIndexTemplatePath = path__default.join(htmlTemplatesPath, 'index.html');
+    const htmlIndex = await loadHTMLTemplate(htmlIndexTemplatePath);
+    const base64StringIndex = await Buffer.from(JSON.stringify(indexRows)).toString('base64');
+    const updatedHtmlIndex = htmlIndex.replace('REPLACE_ME', base64StringIndex);
+    await writeHTMLTemplate(path__default.join(outputDir, 'index.html'), updatedHtmlIndex);
     return null;
 };
 
