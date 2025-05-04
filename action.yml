@@ -32,10 +32,6 @@ inputs:
   views_output_path:
     description: 'Filepath where the dashboards will be saved'
     required: true
-# Define your outputs here.
-outputs:
-  time:
-    description: Your output description here
 
 runs:
   using: node20
