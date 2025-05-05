@@ -30,7 +30,7 @@ The data is then made available in self-contained HTML pages, with simple
 feature to interact with the views.
 
 <p align="center">
-  <img src="docs/delivery-dashboard.png" width="800" />
+  <img alt="Delivery Dashboard" src="docs/delivery-dashboard.png" width="800" />
 </p>
 
 # Features
@@ -114,7 +114,7 @@ Some notable elements of the configuration:
 ### HTML Dashboard
 
 <p align="center">
-  <img src="docs/delivery-dashboard-sample.png" width="800" />
+  <img alt="Delivery Dashboard" src="docs/delivery-dashboard-sample.png" width="800" />
 </p>
 
 You will notice at the bottom left a switch to alternate between calculating
@@ -129,12 +129,12 @@ At the bottom of each chart, the date corresponds to the first day of the week
 <table>
   <tr>
     <td align="center">
-      <img src="docs/delivery-dashboard-sample-weekly-completion.png" width="400" />
+      <img alt="Weekly Completion" src="docs/delivery-dashboard-sample-weekly-completion.png" width="400" />
     </td>
     <td>
       <b>Weekly Completion</b> <br />
       This chart shows nodes closed each week, expressed either in Story points or
-      Issue Count (depending on the switch position). 
+      Issue Count (depending on the switch position).
       <br /><br />
       The stacked bars represent the
       various streams (see configuration above) while the line represents the total.
@@ -150,16 +150,16 @@ At the bottom of each chart, the date corresponds to the first day of the week
       For example, in this screenshot, on average, the team was completing 4.4 bugs each week over the past 6 weeks.
     </td>
     <td align="center">
-      <img src="docs/delivery-dashboard-sample-weekly-velocity.png" width="400" />
+      <img alt="Weekly Velocity" src="docs/delivery-dashboard-sample-weekly-velocity.png" width="400" />
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="docs/delivery-dashboard-sample-weekly-distribution.png" width="400" />
+      <img alt="Weekly Distribution" src="docs/delivery-dashboard-sample-weekly-distribution.png" width="400" />
     </td>
     <td>
       <b>Effort distribution</b> <br />
-      This chart shows the distribution of nodes per stream. 
+      This chart shows the distribution of nodes per stream.
       <br /><br />
       For example, during the week of April 20th, 41% of the completed issues were bugs.
     </td>
@@ -172,7 +172,7 @@ Clicking on the chart opens the table view corresponding to the nodes used to
 calculate the metrics (for that stream and that week).
 
 <p align="center">
-  <img src="docs/delivery-dashboard-sample-table-distribution.png" width="800" />
+  <img alt="Distribution table" src="docs/delivery-dashboard-sample-table-distribution.png" width="800" />
 </p>
 
 Finally, at the bottom of the dashboard, a table is used to display the
@@ -213,7 +213,7 @@ Understandably though, building the right query can be complex, and it is likely
 that this document will not always be 100% up-to-date with likely evolutions of
 the data model.
 
-Nevertheless, the [Typescript interfaces](./src/types/delivery.ts) for
+Nevertheless, the [TypeScript interfaces](./src/types/delivery.ts) for
 `DeliveryItem` should remain up-to-date and contain relevant details to help you
 build your queries.
 

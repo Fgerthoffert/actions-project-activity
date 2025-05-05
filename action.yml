@@ -1,4 +1,4 @@
-name: 'Propject activity metrics'
+name: 'Project activity metrics'
 description:
   'Transfer issues between repositories using labels, including private to
   public transfers.'
