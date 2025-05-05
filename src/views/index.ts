@@ -8,6 +8,7 @@ import { writeHTMLTemplate } from './writeHTMLTemplate.js'
 
 import { tpl as dashboardTemplate } from './compiled-templates/group-view.html.base64.js'
 import { tpl as indexTemplate } from './compiled-templates/index.html.base64.js'
+import dashboardTpl from './test.html'
 
 export const buildViews = async ({
   inputViewsOutputPath,
@@ -18,13 +19,15 @@ export const buildViews = async ({
 }): Promise<null> => {
   const outputDir = await getOutputDirectory(inputViewsOutputPath)
 
+  console.log(dashboardTpl)
+
   const indexRows = []
   for (const group of groups) {
     core.info(`Building view for group ${group.name}`)
     const base64String = await Buffer.from(JSON.stringify(group)).toString(
       'base64'
     )
-
+    // The template is stored in base64 format, so we need to decode it
     const decodedDashboardTemplate = Buffer.from(
       dashboardTemplate,
       'base64'
@@ -49,6 +52,7 @@ export const buildViews = async ({
     JSON.stringify(indexRows)
   ).toString('base64')
 
+  // The template is stored in base64 format, so we need to decode it
   const decodedIndexTemplate = Buffer.from(indexTemplate, 'base64').toString(
     'utf8'
   )
