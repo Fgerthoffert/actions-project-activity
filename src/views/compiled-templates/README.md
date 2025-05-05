@@ -1,3 +1,5 @@
+# Context
+
 I wanted to keep simple standalone HTML files without having to complexify the
 frameworks being used.
 
