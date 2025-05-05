@@ -7,12 +7,12 @@ import * as path from 'path';
 import path__default from 'path';
 import require$$2$1 from 'http';
 import require$$3$1 from 'https';
-import require$$0$5 from 'net';
+import require$$0$4 from 'net';
 import require$$1 from 'tls';
 import require$$4$1 from 'events';
 import require$$0$3 from 'assert';
 import require$$0$2 from 'util';
-import require$$0$4 from 'stream';
+import require$$0$5 from 'stream';
 import require$$7 from 'buffer';
 import require$$8 from 'querystring';
 import require$$14 from 'stream/web';
@@ -1128,8 +1128,8 @@ function requireUtil$6 () {
 	const assert = require$$0$3;
 	const { kDestroyed, kBodyUsed } = requireSymbols$4();
 	const { IncomingMessage } = require$$2$1;
-	const stream = require$$0$4;
-	const net = require$$0$5;
+	const stream = require$$0$5;
+	const net = require$$0$4;
 	const { InvalidArgumentError } = requireErrors();
 	const { Blob } = require$$7;
 	const nodeUtil = require$$0$2;
@@ -8033,7 +8033,7 @@ function requireConnect () {
 	if (hasRequiredConnect) return connect;
 	hasRequiredConnect = 1;
 
-	const net = require$$0$5;
+	const net = require$$0$4;
 	const assert = require$$0$3;
 	const util = requireUtil$6();
 	const { InvalidArgumentError, ConnectTimeoutError } = requireErrors();
@@ -8800,9 +8800,9 @@ function requireClient () {
 	/* global WebAssembly */
 
 	const assert = require$$0$3;
-	const net = require$$0$5;
+	const net = require$$0$4;
 	const http = require$$2$1;
-	const { pipeline } = require$$0$4;
+	const { pipeline } = require$$0$5;
 	const util = requireUtil$6();
 	const timers = requireTimers();
 	const Request = requireRequest$1();
@@ -11971,7 +11971,7 @@ function requireReadable () {
 	hasRequiredReadable = 1;
 
 	const assert = require$$0$3;
-	const { Readable } = require$$0$4;
+	const { Readable } = require$$0$5;
 	const { RequestAbortedError, NotSupportedError, InvalidArgumentError } = requireErrors();
 	const util = requireUtil$6();
 	const { ReadableStreamFrom, toUSVString } = requireUtil$6();
@@ -12603,7 +12603,7 @@ function requireApiStream () {
 	if (hasRequiredApiStream) return apiStream;
 	hasRequiredApiStream = 1;
 
-	const { finished, PassThrough } = require$$0$4;
+	const { finished, PassThrough } = require$$0$5;
 	const {
 	  InvalidArgumentError,
 	  InvalidReturnValueError,
@@ -12835,7 +12835,7 @@ function requireApiPipeline () {
 	  Readable,
 	  Duplex,
 	  PassThrough
-	} = require$$0$4;
+	} = require$$0$5;
 	const {
 	  InvalidArgumentError,
 	  InvalidReturnValueError,
@@ -14128,7 +14128,7 @@ function requirePendingInterceptorsFormatter () {
 	if (hasRequiredPendingInterceptorsFormatter) return pendingInterceptorsFormatter;
 	hasRequiredPendingInterceptorsFormatter = 1;
 
-	const { Transform } = require$$0$4;
+	const { Transform } = require$$0$5;
 	const { Console } = require$$1$2;
 
 	/**
@@ -17154,7 +17154,7 @@ function requireFetch () {
 	} = requireConstants$3();
 	const { kHeadersList } = requireSymbols$4();
 	const EE = require$$4$1;
-	const { Readable, pipeline } = require$$0$4;
+	const { Readable, pipeline } = require$$0$5;
 	const { addAbortListener, isErrored, isReadable, nodeMajor, nodeMinor } = requireUtil$6();
 	const { dataURLProcessor, serializeAMimeType } = requireDataURL();
 	const { TransformStream } = require$$14;
@@ -23217,7 +23217,7 @@ function requireReceiver () {
 	if (hasRequiredReceiver) return receiver;
 	hasRequiredReceiver = 1;
 
-	const { Writable } = require$$0$4;
+	const { Writable } = require$$0$5;
 	const diagnosticsChannel = require$$0$9;
 	const { parserStates, opcodes, states, emptyBuffer } = requireConstants();
 	const { kReadyState, kSentClose, kResponse, kReceivedClose } = requireSymbols();
@@ -38902,24 +38902,14 @@ const bindable = bind.bind(bind);
 function bindApi(hook, state, name) {
   const removeHookRef = bindable(removeHook, null).apply(
     null,
-    name ? [state, name] : [state]
+    [state]
   );
   hook.api = { remove: removeHookRef };
   hook.remove = removeHookRef;
   ["before", "error", "after", "wrap"].forEach((kind) => {
-    const args = name ? [state, kind, name] : [state, kind];
+    const args = [state, kind];
     hook[kind] = hook.api[kind] = bindable(addHook, null).apply(null, args);
   });
-}
-
-function Singular() {
-  const singularHookName = Symbol("Singular");
-  const singularHookState = {
-    registry: {},
-  };
-  const singularHook = register.bind(null, singularHookState, singularHookName);
-  bindApi(singularHook, singularHookState, singularHookName);
-  return singularHook;
 }
 
 function Collection() {
@@ -38933,7 +38923,7 @@ function Collection() {
   return hook;
 }
 
-var Hook = { Singular, Collection };
+var Hook = { Collection };
 
 // pkg/dist-src/defaults.js
 
@@ -40153,7 +40143,7 @@ function paginateGraphQL(octokit) {
   };
 }
 
-var n=class{_eventListeners;_maxListeners;_logger;constructor(e){this._eventListeners=new Map,this._maxListeners=100,this._logger=e?.logger;}once(e,s){let t=(...r)=>{this.off(e,t),s(...r);};return this.on(e,t),this}listenerCount(e){if(!e)return this.getAllListeners().length;let s=this._eventListeners.get(e);return s?s.length:0}eventNames(){return Array.from(this._eventListeners.keys())}rawListeners(e){return e?this._eventListeners.get(e)??[]:this.getAllListeners()}prependListener(e,s){let t=this._eventListeners.get(e)??[];return t.unshift(s),this._eventListeners.set(e,t),this}prependOnceListener(e,s){let t=(...r)=>{this.off(e,t),s(...r);};return this.prependListener(e,t),this}maxListeners(){return this._maxListeners}addListener(e,s){return this.on(e,s),this}on(e,s){this._eventListeners.has(e)||this._eventListeners.set(e,[]);let t=this._eventListeners.get(e);return t&&(t.length>=this._maxListeners&&console.warn(`MaxListenersExceededWarning: Possible event memory leak detected. ${t.length+1} ${e} listeners added. Use setMaxListeners() to increase limit.`),t.push(s)),this}removeListener(e,s){return this.off(e,s),this}off(e,s){let t=this._eventListeners.get(e)??[],r=t.indexOf(s);return r!==-1&&t.splice(r,1),t.length===0&&this._eventListeners.delete(e),this}emit(e,...s){let t=!1,r=this._eventListeners.get(e);if(r&&r.length>0)for(let i of r)i(...s),t=!0;return t}listeners(e){return this._eventListeners.get(e)??[]}removeAllListeners(e){return e?this._eventListeners.delete(e):this._eventListeners.clear(),this}setMaxListeners(e){this._maxListeners=e;for(let s of this._eventListeners.values())s.length>e&&s.splice(e);}getAllListeners(){let e=new Array;for(let s of this._eventListeners.values())e=e.concat(s);return e}};var l=class extends n{_hooks;_throwHookErrors=!1;constructor(e){super({logger:e?.logger}),this._hooks=new Map,e?.throwHookErrors!==void 0&&(this._throwHookErrors=e.throwHookErrors);}get hooks(){return this._hooks}get throwHookErrors(){return this._throwHookErrors}set throwHookErrors(e){this._throwHookErrors=e;}get logger(){return this._logger}set logger(e){this._logger=e;}onHook(e,s){let t=this._hooks.get(e);t?t.push(s):this._hooks.set(e,[s]);}prependHook(e,s){let t=this._hooks.get(e);t?t.unshift(s):this._hooks.set(e,[s]);}prependOnceHook(e,s){let t=async(...r)=>(this.removeHook(e,t),s(...r));this.prependHook(e,t);}onceHook(e,s){let t=async(...r)=>(this.removeHook(e,t),s(...r));this.onHook(e,t);}removeHook(e,s){let t=this._hooks.get(e);if(t){let r=t.indexOf(s);r!==-1&&t.splice(r,1);}}async hook(e,...s){let t=this._hooks.get(e);if(t)for(let r of t)try{await r(...s);}catch(i){let o=`${e}: ${i.message}`;if(this.emit("error",new Error(o)),this._logger&&this._logger.error(o),this._throwHookErrors)throw new Error(o)}}getHooks(e){return this._hooks.get(e)}clearHooks(){this._hooks.clear();}};
+var n=class{_eventListeners;_maxListeners;_logger;constructor(e){this._eventListeners=new Map,this._maxListeners=100,this._logger=e?.logger;}once(e,s){let t=(...r)=>{this.off(e,t),s(...r);};return this.on(e,t),this}listenerCount(e){if(!e)return this.getAllListeners().length;let s=this._eventListeners.get(e);return s?s.length:0}eventNames(){return Array.from(this._eventListeners.keys())}rawListeners(e){return e?this._eventListeners.get(e)??[]:this.getAllListeners()}prependListener(e,s){let t=this._eventListeners.get(e)??[];return t.unshift(s),this._eventListeners.set(e,t),this}prependOnceListener(e,s){let t=(...r)=>{this.off(e,t),s(...r);};return this.prependListener(e,t),this}maxListeners(){return this._maxListeners}addListener(e,s){return this.on(e,s),this}on(e,s){this._eventListeners.has(e)||this._eventListeners.set(e,[]);let t=this._eventListeners.get(e);return t&&(t.length>=this._maxListeners&&console.warn(`MaxListenersExceededWarning: Possible event memory leak detected. ${t.length+1} ${e} listeners added. Use setMaxListeners() to increase limit.`),t.push(s)),this}removeListener(e,s){return this.off(e,s),this}off(e,s){let t=this._eventListeners.get(e)??[],r=t.indexOf(s);return r!==-1&&t.splice(r,1),t.length===0&&this._eventListeners.delete(e),this}emit(e,...s){let t=false,r=this._eventListeners.get(e);if(r&&r.length>0)for(let i of r)i(...s),t=true;return t}listeners(e){return this._eventListeners.get(e)??[]}removeAllListeners(e){return e?this._eventListeners.delete(e):this._eventListeners.clear(),this}setMaxListeners(e){this._maxListeners=e;for(let s of this._eventListeners.values())s.length>e&&s.splice(e);}getAllListeners(){let e=new Array;for(let s of this._eventListeners.values())e=e.concat(s);return e}};var l=class extends n{_hooks;_throwHookErrors=false;constructor(e){super({logger:e?.logger}),this._hooks=new Map,e?.throwHookErrors!==void 0&&(this._throwHookErrors=e.throwHookErrors);}get hooks(){return this._hooks}get throwHookErrors(){return this._throwHookErrors}set throwHookErrors(e){this._throwHookErrors=e;}get logger(){return this._logger}set logger(e){this._logger=e;}onHook(e,s){let t=this._hooks.get(e);t?t.push(s):this._hooks.set(e,[s]);}prependHook(e,s){let t=this._hooks.get(e);t?t.unshift(s):this._hooks.set(e,[s]);}prependOnceHook(e,s){let t=async(...r)=>(this.removeHook(e,t),s(...r));this.prependHook(e,t);}onceHook(e,s){let t=async(...r)=>(this.removeHook(e,t),s(...r));this.onHook(e,t);}removeHook(e,s){let t=this._hooks.get(e);if(t){let r=t.indexOf(s);r!==-1&&t.splice(r,1);}}async hook(e,...s){let t=this._hooks.get(e);if(t)for(let r of t)try{await r(...s);}catch(i){let o=`${e}: ${i.message}`;if(this.emit("error",new Error(o)),this._logger&&this._logger.error(o),this._throwHookErrors)throw new Error(o)}}getHooks(e){return this._hooks.get(e)}clearHooks(){this._hooks.clear();}};
 
 // src/index.ts
 
@@ -47538,7 +47528,6 @@ useOperators(OpType.PROJECTION, projectionOperators);
 useOperators(OpType.QUERY, queryOperators);
 
 ({
-  cloneMode: "copy",
   queryOptions: initOptions({
     context: Context.init().addQueryOps(queryOperators).addExpressionOps(booleanOperators).addExpressionOps(comparisonOperators)
   })
