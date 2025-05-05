@@ -41,9 +41,9 @@ find "$SCRIPT_DIR" -maxdepth 1 -type f -name "*.html" | while read -r file; do
 	encoded_content=$(encode_to_base64 "$file")
 
 	# Create TypeScript file with encoded content
-	echo "export const tpl = '$encoded_content'" > "$target_file"
-	echo "" >> "$target_file"
-	echo "export default tpl" >> "$target_file"
+	echo "export const tpl = '$encoded_content'" >"$target_file"
+	echo "" >>"$target_file"
+	echo "export default tpl" >>"$target_file"
 
 	echo "✓ Created $target_file"
 done
