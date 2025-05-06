@@ -33,10 +33,12 @@ export const buildMetrics = async ({
 
         // Begin by generating an array of streams including their corresponding nodes
         // groupNodes contains all nodes that belong to the group (across all streams)
-        let { streams: groupStreams, groupNodes } = buildStreams({
+        const streamsResult = buildStreams({
           nodes: srcGroupNodes,
           group
         })
+        let groupStreams = streamsResult.streams
+        const groupNodes = streamsResult.groupNodes
 
         // The calendar must span the entire group, not just one stream
         const calendar = buildEmptyCalendar(groupNodes)
