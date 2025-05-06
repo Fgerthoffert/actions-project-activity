@@ -1,10 +1,9 @@
 import * as core from '@actions/core'
 
-import { Query } from 'mingo'
-import 'mingo/init/system'
-
 import { Config, DeliveryItem, MetricGroup } from '../types/index.js'
 
+import { buildGroup } from './buildGroup.js'
+import { buildStreams } from './buildStreams.js'
 import { buildEmptyCalendar } from './buildEmptyCalendar.js'
 import { populateCalendar } from './populateCalendar.js'
 import { buildMovingAverage } from './buildMovingAverage.js'
@@ -25,35 +24,21 @@ export const buildMetrics = async ({
     await core.group(
       `⏳ Calculating metrics for group: ${group.name}`,
       async () => {
-        let srcNodes = nodes
-        let groupNodes: DeliveryItem[] = []
-        let groupStreams = []
-        for (const stream of group.streams) {
-          const streamNodes: DeliveryItem[] = new Query(stream.query)
-            .find(srcNodes)
-            .all() as DeliveryItem[]
+        const srcGroupNodes = buildGroup({ nodes, group })
 
-          // In the source nodes, remove the nodes that are already in the stream
-          // This makes sure nodes are not counted multiple times
-          srcNodes = srcNodes.filter(
-            (node) => !streamNodes.find((n) => n.id === node.id)
-          )
-          core.info(
-            `${group.name} - Processing stream: ${stream.name} (${stream.description}) - documents: ${streamNodes.length}`
-          )
-          groupStreams.push({
-            ...stream,
-            nodes: streamNodes
-          })
-          groupNodes = [...groupNodes, ...streamNodes]
-        }
+        // Begin by generating an array of streams including their corresponding nodes
+        // groupNodes contains all nodes that belong to the group (across all streams)
+        let { streams: groupStreams, groupNodes } = buildStreams({
+          nodes: srcGroupNodes,
+          group
+        })
 
         // The calendar must span the entire group, not just one stream
         const calendar = buildEmptyCalendar(groupNodes)
 
         // Once the calendar containing all weeks across all streams is built,
         // we can populate it with the metrics from each stream
-        groupStreams = groupStreams.map((stream) => {
+        groupStreams = groupStreams.map((stream: any) => {
           const streamCalendar = populateCalendar(stream.nodes, calendar)
           const streamCalendarWithMovingAverage = buildMovingAverage(
             streamCalendar,

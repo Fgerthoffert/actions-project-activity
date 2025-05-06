@@ -21,17 +21,19 @@ export const getProjectCardsGraphQL = `
                 ... on Issue {
                   __typename
                   id
+                  number
                   updatedAt
                   closedAt
                 }
                 ... on PullRequest {
                   __typename
                   id
+                  number
                   updatedAt
                   mergedAt
                   closedAt
                 }
-              }                  
+              }
               fieldValues(first: 10) {
                 nodes {
                   ... on ProjectV2ItemFieldDateValue {

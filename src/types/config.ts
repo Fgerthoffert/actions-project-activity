@@ -6,10 +6,12 @@ interface ConfigGroupStream {
   query: AnyObject
 }
 
-interface ConfigGroup {
+export interface ConfigGroup {
   name: string
   description: string
   defaultMetrics: 'points' | 'nodes'
+  query?: AnyObject
+  groupByField?: string
   streams: ConfigGroupStream[]
 }
 

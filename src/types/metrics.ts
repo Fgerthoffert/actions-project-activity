@@ -6,6 +6,7 @@ export interface MetricGroup {
   id: string
   name: string
   description: string
+  query?: AnyObject
   nodes: DeliveryItem[]
   streams: MetricStream[]
   updatedAt: string

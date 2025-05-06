@@ -157,6 +157,7 @@
     </style>
   </head>
   <body>
+    <a href="index.html">🔙</a>
     <div class="container">
       <div class="dashboard-header">
         <h2 id="dashboard-title" class="dashboard-title"></h2>
@@ -203,6 +204,9 @@
           </tbody>
         </table>
       </div>
+
+      <p class="source-info" id="dashboard-projectfilter"></p>
+
       <div class="table-container">
         <div class="table-header">
           <h3>Data Streams</h3>
@@ -287,6 +291,23 @@
         })
       }
 
+      const tooltipFormatter = (params) => {
+        // Limit tooltip to top 10 values at the point
+        const sortedParams = [...params].sort((a, b) => b.value - a.value)
+        const limited = sortedParams.slice(0, 10)
+
+        let result = `${limited[0].axisValue}<br>`
+        limited.forEach((param) => {
+          result += `${param.marker} ${param.seriesName}: ${param.value.toFixed(2)}<br>`
+        })
+
+        if (params.length > 10) {
+          result += `<i>... and ${params.length - 10} more</i>`
+        }
+
+        return result
+      }
+
       function createWeeklyCompletionChart(elementId, data, metric) {
         const chartDom = document.getElementById(elementId)
         const myChart = echarts.init(chartDom)
@@ -313,6 +334,7 @@
             }
           },
           legend: {
+            type: 'scroll',
             top: 'top',
             left: 'center',
             top: 30
@@ -321,6 +343,9 @@
             trigger: 'axis',
             axisPointer: {
               type: 'shadow'
+            },
+            formatter: function (params) {
+              return tooltipFormatter(params)
             }
           },
           grid: {
@@ -422,6 +447,7 @@
             }
           },
           legend: {
+            type: 'scroll',
             top: 'top',
             left: 'center',
             top: 30
@@ -430,6 +456,9 @@
             trigger: 'axis',
             axisPointer: {
               type: 'shadow'
+            },
+            formatter: function (params) {
+              return tooltipFormatter(params)
             }
           },
           grid: {
@@ -511,6 +540,7 @@
             }
           },
           legend: {
+            type: 'scroll',
             top: 'top',
             left: 'center',
             top: 30
@@ -519,6 +549,9 @@
             trigger: 'axis',
             axisPointer: {
               type: 'shadow'
+            },
+            formatter: function (params) {
+              return tooltipFormatter(params)
             }
           },
           grid: {
@@ -598,6 +631,14 @@
         updateAllCharts(switchElement.checked ? 'nodes' : 'points')
       }
 
+      const filteredDataset = (groupMetrics) => {
+        if (groupMetrics.query === undefined) {
+          return ''
+        } else {
+          return `Overall project data filtered: ${JSON.stringify(groupMetrics.query)}  <br />`
+        }
+      }
+
       // Function to initialize the dashboard metadata
       function initializeDashboard() {
         // Set dashboard title and metadata from the data object
@@ -605,6 +646,14 @@
           groupMetrics.name
         document.getElementById('dashboard-description').textContent =
           groupMetrics.description
+
+        if (groupMetrics.query === undefined) {
+          document.getElementById('dashboard-projectfilter').textContent = ''
+        } else {
+          document.getElementById('dashboard-projectfilter').textContent =
+            `Overall project data filtered: ${JSON.stringify(groupMetrics.query)}`
+        }
+
         document.getElementById('dashboard-metadata').textContent =
           `Last updated: ${groupMetrics.updatedAt}`
 
