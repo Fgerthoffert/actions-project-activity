@@ -48,7 +48,7 @@ export const buildStreams = ({
     core.info(
       `${group.name} - Processing group by field: ${group.groupByField}`
     )
-    let agg = new Aggregator([
+    const agg = new Aggregator([
       { $group: { _id: `$${group.groupByField}`, nodes: { $push: '$$ROOT' } } }
     ])
     const aggResult = agg.run(nodes)

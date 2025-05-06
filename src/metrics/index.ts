@@ -1,6 +1,11 @@
 import * as core from '@actions/core'
 
-import { Config, DeliveryItem, MetricGroup } from '../types/index.js'
+import {
+  Config,
+  DeliveryItem,
+  MetricGroup,
+  MetricStream
+} from '../types/index.js'
 
 import { buildGroup } from './buildGroup.js'
 import { buildStreams } from './buildStreams.js'
@@ -38,7 +43,7 @@ export const buildMetrics = async ({
 
         // Once the calendar containing all weeks across all streams is built,
         // we can populate it with the metrics from each stream
-        groupStreams = groupStreams.map((stream: any) => {
+        groupStreams = groupStreams.map((stream: MetricStream) => {
           const streamCalendar = populateCalendar(stream.nodes, calendar)
           const streamCalendarWithMovingAverage = buildMovingAverage(
             streamCalendar,

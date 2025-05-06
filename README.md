@@ -203,6 +203,59 @@ groups:
         query: { issueType.name: { $eq: 'Bug' } }
 ```
 
+## Advanced Configuration
+
+### Aggregations (buckets)
+
+You might want to generate aggregations by a particular field. This can be done
+by using the `groupByField` parameter, providing the corresponding field to
+group by.
+
+This parameter is not compatible with configuration-provided streams, but
+instead streams will be generated from the result of the aggregations.
+
+Here is a sample configuration with aggregation:
+
+```yaml
+fields:
+  points: Story Points
+movingWindow: 6
+groups:
+  - name: Delivery by team
+    groupByField: project.Team
+```
+
+### Group-level filtering
+
+You can filter out the dataset used to generate the streams. This is done by
+providing an optional `query` parameter at the group level.
+
+When provided, all nodes collected from the project, will go through one first
+level of filtering, before the individual streams are generated.
+
+Here is a sample with group-level filtering, this will only use issues closed
+after March 1st, 2025.
+
+```yaml
+fields:
+  points: Story Points
+  # Moving rolling average window in weeks
+movingWindow: 6
+groups:
+  - name: Customer tickets vs. other
+    query: { closedAt: { $gte: '2025-03-01T00:00:00Z' } }
+    streams:
+      - name: Customer
+        description: 'Customer tickets'
+        query: { labels: { $elemMatch: { $eq: 'customer' } } }
+      - name: all tickets
+        description: 'All other tickets'
+        query: {}
+```
+
+Note that you could also have achieved the same result by adding the date
+restriction to each individual stream.
+
 # Querying
 
 Querying is done towards and in-memory array of nodes using

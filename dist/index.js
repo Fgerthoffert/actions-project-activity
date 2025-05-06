@@ -47640,7 +47640,26 @@ useOperators(OpType.PROJECTION, projectionOperators);
 useOperators(OpType.QUERY, queryOperators);
 useOperators(OpType.WINDOW, windowOperators);
 
-/* eslint-disable  @typescript-eslint/no-explicit-any */
+/**
+ * Filters and groups delivery items based on a specified query.
+ *
+ * @param params - The parameters for building the group.
+ * @param params.nodes - An array of `DeliveryItem` objects to be filtered.
+ * @param params.group - The configuration group containing the query and metadata.
+ * @returns An array of `DeliveryItem` objects that match the query defined in the group.
+ *
+ * @remarks
+ * - If the `group.query` is undefined, all nodes are returned without filtering.
+ * - Logs the number of nodes before and after applying the query for debugging purposes.
+ *
+ * @example
+ * ```typescript
+ * const nodes: DeliveryItem[] = [...];
+ * const group: ConfigGroup = { name: "Example Group", query: { ... } };
+ * const filteredNodes = buildGroup({ nodes, group });
+ * console.log(filteredNodes);
+ * ```
+ */
 const buildGroup = ({ nodes, group }) => {
     if (group.query === undefined) {
         coreExports.info('No query defined for group, returning all nodes');
@@ -47685,7 +47704,7 @@ const buildStreams = ({ nodes, group }) => {
     let groupNodes = [];
     if (group.groupByField !== undefined) {
         coreExports.info(`${group.name} - Processing group by field: ${group.groupByField}`);
-        let agg = new Aggregator([
+        const agg = new Aggregator([
             { $group: { _id: `$${group.groupByField}`, nodes: { $push: '$$ROOT' } } }
         ]);
         const aggResult = agg.run(nodes);
