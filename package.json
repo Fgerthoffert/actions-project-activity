@@ -23,7 +23,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "bundle": "npm run format:write && npm run package",
+    "compile-template": "bash templates/compile.sh",
+    "bundle": "npm run compile-template && npm run format:write && npm run package",
     "ci-test": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 npx jest",
     "coverage": "npx make-coverage-badge --output-path ./badges/coverage.svg",
     "format:write": "npx prettier --write .",
@@ -37,7 +38,14 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.11.1"
+    "@actions/core": "^1.11.1",
+    "@octokit/plugin-paginate-graphql": "^5.2.4",
+    "date-fns": "^4.1.0",
+    "flat-cache": "^6.1.8",
+    "graphql-tag": "^2.12.6",
+    "mingo": "^6.6.0",
+    "sqlite3": "^5.1.7",
+    "yaml": "^2.7.1"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.8",

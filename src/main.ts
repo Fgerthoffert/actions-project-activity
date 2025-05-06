@@ -1,5 +1,10 @@
 import * as core from '@actions/core'
-import { wait } from './wait.js'
+import * as github from '@actions/github'
+
+import { loadActionConfig } from './utils/index.js'
+import { fetchData } from './data/index.js'
+import { buildMetrics } from './metrics/index.js'
+import { buildViews } from './views/index.js'
 
 /**
  * The main function for the action.
@@ -8,18 +13,48 @@ import { wait } from './wait.js'
  */
 export async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
+    const inputGithubToken = core.getInput('token')
+    const inputYamlConfig = core.getInput('config')
+    const inputGithubOrgName = core.getInput('github_org_name')
+    const inputGithubProjectNumber = parseInt(
+      core.getInput('github_project_number'),
+      10
+    )
+    const inputDevCache = core.getInput('dev_cache') === 'true'
+    const inputViewsOutputPath = core.getInput('views_output_path')
+    const octokit = github.getOctokit(inputGithubToken)
 
-    // Debug logs are only output if the `ACTIONS_STEP_DEBUG` secret is true
-    core.debug(`Waiting ${ms} milliseconds ...`)
+    const config = await loadActionConfig(inputYamlConfig)
 
-    // Log the current timestamp, wait, then log the new timestamp
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    const {
+      data: { login }
+    } = await octokit.rest.users.getAuthenticated()
+    core.info(`Successfully authenticated to GitHub as: ${login}`)
 
-    // Set outputs for other workflow steps to use
-    core.setOutput('time', new Date().toTimeString())
+    // Fetch all data from GitHub and return an array of nodes (both Issues and PRs)
+    const allNodes = await fetchData({
+      inputGithubToken,
+      inputGithubOrgName,
+      inputGithubProjectNumber,
+      inputDevCache,
+      config
+    })
+
+    // Create an array containing all metrics across all groups
+    const allMetrics = await buildMetrics({
+      nodes: allNodes,
+      config
+    })
+
+    // Build the HTML views
+    await buildViews({
+      inputViewsOutputPath,
+      groups: allMetrics
+    })
+
+    core.info(
+      `Successfully built ${allMetrics.length} views and saved them to ${inputViewsOutputPath}`
+    )
   } catch (error) {
     // Fail the workflow run if an error occurs
     if (error instanceof Error) core.setFailed(error.message)

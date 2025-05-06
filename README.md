@@ -1,306 +1,382 @@
-# Create a GitHub Action Using TypeScript
+<!-- markdownlint-disable MD041 -->
+<p align="center">
+  <img alt="ZenCrepesLogo" src="docs/zencrepes-logo.png" height="140" />
+  <h2 align="center">Metrics for GitHub Projects</h2>
+  <p align="center">A GitHub Action that generate metrics out of the content of GitHub Projects</p>
+</p>
 
-[![GitHub Super-Linter](https://github.com/actions/typescript-action/actions/workflows/linter.yml/badge.svg)](https://github.com/super-linter/super-linter)
-![CI](https://github.com/actions/typescript-action/actions/workflows/ci.yml/badge.svg)
-[![Check dist/](https://github.com/actions/typescript-action/actions/workflows/check-dist.yml/badge.svg)](https://github.com/actions/typescript-action/actions/workflows/check-dist.yml)
-[![CodeQL](https://github.com/actions/typescript-action/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/actions/typescript-action/actions/workflows/codeql-analysis.yml)
+---
+
+<div align="center">
+
+[![GitHub Super-Linter](https://github.com/fgerthoffert/actions-project-activity/actions/workflows/linter.yml/badge.svg)](https://github.com/super-linter/super-linter)
+![CI](https://github.com/fgerthoffert/actions-project-activity/actions/workflows/ci.yml/badge.svg)
+[![Check dist/](https://github.com/fgerthoffert/actions-project-activity/actions/workflows/check-dist.yml/badge.svg)](https://github.com/fgerthoffert/actions-project-activity/actions/workflows/check-dist.yml)
+[![CodeQL](https://github.com/fgerthoffert/actions-project-activity/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/fgerthoffert/actions-project-activity/actions/workflows/codeql-analysis.yml)
 [![Coverage](./badges/coverage.svg)](./badges/coverage.svg)
 
-Use this template to bootstrap the creation of a TypeScript action. :rocket:
+</div>
 
-This template includes compilation support, tests, a validation workflow,
-publishing, and versioning guidance.
+---
 
-If you are new, there's also a simpler introduction in the
-[Hello world JavaScript action repository](https://github.com/actions/hello-world-javascript-action).
+# About
 
-## Create Your Own Action
+This action is directly inspired by work previously done for
+[ZenCrepes](https://github.com/zencrepes) and
+[Jira Agile Velocity](https://github.com/Fgerthoffert/jira-agile-velocity) and
+aims at providing detailed metrics about a single GitHub Project.
 
-To create your own action, you can use this repository as a template! Just
-follow the below instructions:
+The data is then made available in self-contained HTML pages, with simple
+feature to interact with the views.
 
-1. Click the **Use this template** button at the top of the repository
-1. Select **Create a new repository**
-1. Select an owner and name for your new repository
-1. Click **Create repository**
-1. Clone your new repository
+<p align="center">
+  <img alt="Delivery Dashboard" src="docs/delivery-dashboard.png" width="800" />
+</p>
 
-> [!IMPORTANT]
->
-> Make sure to remove or update the [`CODEOWNERS`](./CODEOWNERS) file! For
-> details on how to use this file, see
-> [About code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners).
+# Features
 
-## Initial Setup
+- Displays results in nodes (Issues or PRs) count or Story Points
+- Self-contained and client-side, no need for server-side rendering.
+- Switch between count-based or Story Points-based metrics.
+- 3 Charts:
+  - Weekly completion
+  - Moving average (velocity) over configurable window (6 weeks by default)
+  - Effort distribution
+- A table view to relate calculated metrics to the actual data nodes (Issues or
+  PRs)
+- Stateless, all of the metrics is calculated from data in GitHub
 
-After you've cloned the repository to your local machine or codespace, you'll
-need to perform some initial setup steps before you can develop your action.
+# Limitation
 
-> [!NOTE]
->
-> You'll need to have a reasonably modern version of
-> [Node.js](https://nodejs.org) handy (20.x or later should work!). If you are
-> using a version manager like [`nodenv`](https://github.com/nodenv/nodenv) or
-> [`fnm`](https://github.com/Schniz/fnm), this template has a `.node-version`
-> file at the root of the repository that can be used to automatically switch to
-> the correct version when you `cd` into the repository. Additionally, this
-> `.node-version` file is used by GitHub Actions in any `actions/setup-node`
-> actions.
+For the time being, this only works with non-archived items. There's currently
+no GitHub API to retrieve archived cards in a project.
 
-1. :hammer_and_wrench: Install the dependencies
+A discussion was
+[opened on that topic](https://github.com/orgs/community/discussions/158440), in
+the meantime you can filter out your project views using a filter such as
+`updated:>@today-2w`.
 
-   ```bash
-   npm install
-   ```
+If nothing progress on that front, a workaround is possible, but will be quite
+more expensive to run (get repos => get issues => get cards => filter matching
+project).
 
-1. :building_construction: Package the TypeScript for distribution
+# Overview
 
-   ```bash
-   npm run bundle
-   ```
+The action fetches all data from the configured GitHub project and will collect
+data about all closed Issues and Pull Requests in the project.
 
-1. :white_check_mark: Run the tests
+Using a provided configuration file, it can generate multiple dashboards over
+the same data with each of these dashboards supporting multile data streams.
 
-   ```bash
-   $ npm test
+But first, some details about terminology:
 
-   PASS  ./index.test.js
-     ✓ throws invalid number (3ms)
-     ✓ wait 500 ms (504ms)
-     ✓ test runs (95ms)
+- A **node** refers indiferently to a GitHub Issue or a GitHub PullRequest
+  attached to a project.
+- A **group** is composed of one or more streams. For each group, an HTML
+  dashboard is generated. Groups are unrelated to eachother.
+- A **stream** represent of set of similares issues from which you'd like to
+  collect some metrics. It uses a MongoDB **query** is a MongoDB query (using
+  [Mingo](https://www.npmjs.com/package/mingo)). Streams are executed in
+  sequence, if a node is found in a stream, it is automatically removed from the
+  following streams.
 
-   ...
-   ```
+## Example: Breakdown by issue type
 
-## Update the Action Metadata
+You're insterested by a breakdown of effort by issue type. In particular you'd
+like to get a sense of the ratio for stories vs. bugs. You'd also interested to
+see other type of issues as well as issues that might be missing a type.
 
-The [`action.yml`](action.yml) file defines metadata about your action, such as
-input(s) and output(s). For details about this file, see
-[Metadata syntax for GitHub Actions](https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions).
-
-When you copy this repository, update `action.yml` with the name, description,
-inputs, and outputs for your action.
-
-## Update the Action Code
-
-The [`src/`](./src/) directory is the heart of your action! This contains the
-source code that will be run when your action is invoked. You can replace the
-contents of this directory with your own code.
-
-There are a few things to keep in mind when writing your action code:
-
-- Most GitHub Actions toolkit and CI/CD operations are processed asynchronously.
-  In `main.ts`, you will see that the action is run in an `async` function.
-
-  ```javascript
-  import * as core from '@actions/core'
-  //...
-
-  async function run() {
-    try {
-      //...
-    } catch (error) {
-      core.setFailed(error.message)
-    }
-  }
-  ```
-
-  For more information about the GitHub Actions toolkit, see the
-  [documentation](https://github.com/actions/toolkit/blob/master/README.md).
-
-So, what are you waiting for? Go ahead and start customizing your action!
-
-1. Create a new branch
-
-   ```bash
-   git checkout -b releases/v1
-   ```
-
-1. Replace the contents of `src/` with your action code
-1. Add tests to `__tests__/` for your source code
-1. Format, test, and build the action
-
-   ```bash
-   npm run all
-   ```
-
-   > This step is important! It will run [`rollup`](https://rollupjs.org/) to
-   > build the final JavaScript action code with all dependencies included. If
-   > you do not run this step, your action will not work correctly when it is
-   > used in a workflow.
-
-1. (Optional) Test your action locally
-
-   The [`@github/local-action`](https://github.com/github/local-action) utility
-   can be used to test your action locally. It is a simple command-line tool
-   that "stubs" (or simulates) the GitHub Actions Toolkit. This way, you can run
-   your TypeScript action locally without having to commit and push your changes
-   to a repository.
-
-   The `local-action` utility can be run in the following ways:
-
-   - Visual Studio Code Debugger
-
-     Make sure to review and, if needed, update
-     [`.vscode/launch.json`](./.vscode/launch.json)
-
-   - Terminal/Command Prompt
-
-     ```bash
-     # npx @github/local action <action-yaml-path> <entrypoint> <dotenv-file>
-     npx @github/local-action . src/main.ts .env
-     ```
-
-   You can provide a `.env` file to the `local-action` CLI to set environment
-   variables used by the GitHub Actions Toolkit. For example, setting inputs and
-   event payload data used by your action. For more information, see the example
-   file, [`.env.example`](./.env.example), and the
-   [GitHub Actions Documentation](https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables).
-
-1. Commit your changes
-
-   ```bash
-   git add .
-   git commit -m "My first action is ready!"
-   ```
-
-1. Push them to your repository
-
-   ```bash
-   git push -u origin releases/v1
-   ```
-
-1. Create a pull request and get feedback on your action
-1. Merge the pull request into the `main` branch
-
-Your action is now published! :rocket:
-
-For information about versioning your action, see
-[Versioning](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
-in the GitHub Actions toolkit.
-
-## Validate the Action
-
-You can now validate the action by referencing it in a workflow file. For
-example, [`ci.yml`](./.github/workflows/ci.yml) demonstrates how to reference an
-action in the same repository.
+The configuration file would look like this:
 
 ```yaml
-steps:
-  - name: Checkout
-    id: checkout
-    uses: actions/checkout@v4
-
-  - name: Test Local Action
-    id: test-action
-    uses: ./
-    with:
-      milliseconds: 1000
-
-  - name: Print Output
-    id: output
-    run: echo "${{ steps.test-action.outputs.time }}"
+fields:
+  points: Story Points
+movingWindow: 6 # in weeks, window to calculate moving average
+groups:
+  - name: Metrics by ticket type
+    description: This dashboards shows the number of tickets by type
+    defaultMetric: nodes
+    streams:
+      - name: Bugs
+        description: 'Issues of type bug'
+        query: { issueType.name: { $eq: 'Bug' } }
+      - name: Stories
+        description: 'Issues of type story'
+        query: { issueType.name: { $eq: 'Story' } }
+      - name: Missing Type
+        description: 'Issues without an issue type'
+        query:
+          { $and: [{ type: { $eq: 'Issue' } }, { issueType: { $eq: null } }] }
+      - name: Everything else
+        description: 'All other issues'
+        query: { type: { $eq: 'Issue' } }
 ```
 
-For example workflow runs, check out the
-[Actions tab](https://github.com/actions/typescript-action/actions)! :rocket:
+Some notable elements of the configuration:
 
-## Usage
+- To detect issues with missing types, we need to exclude PullRequests since
+  these do not have Issue types, this is done by querying only for Issues AND
+  **null** issueType:
+  - query:
+    `{ $and: [{ type: { $eq: 'Issue' } }, { issueType: { $eq: null } }] }`.
+- For all other issues, we need to make sure we're excluding Pull Requests:
+  - query: `{ type: { $eq: 'Issue' } }`.
+- You can choose between using nodes counts (value: `nodes`) or Story Points
+  (value: `points`) as the default view for the generated dashboards. This
+  default to points.
 
-After testing, you can create version tag(s) that developers can use to
-reference different stable versions of your action. For more information, see
-[Versioning](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
-in the GitHub Actions toolkit.
+### HTML Dashboard
 
-To include the action in a workflow in another repository, you can use the
-`uses` syntax with the `@` symbol to reference a specific branch, tag, or commit
-hash.
+<p align="center">
+  <img alt="Delivery Dashboard" src="docs/delivery-dashboard-sample.png" width="800" />
+</p>
+
+You will notice at the bottom left a switch to alternate between calculating
+metrics using Story Points or node count. Clicking on this automatically switch
+between modes.
+
+At the bottom of each chart, the date corresponds to the first day of the week
+(using date-fns [startOfWeek()](https://date-fns.org/v4.1.0/docs/startOfWeek)).
+
+#### Charts
+
+<table>
+  <tr>
+    <td align="center">
+      <img alt="Weekly Completion" src="docs/delivery-dashboard-sample-weekly-completion.png" width="400" />
+    </td>
+    <td>
+      <b>Weekly Completion</b> <br />
+      This chart shows nodes closed each week, expressed either in Story points or
+      Issue Count (depending on the switch position).
+      <br /><br />
+      The stacked bars represent the
+      various streams (see configuration above) while the line represents the total.
+      <br /><br />
+      For example, during the week of April 20th, a total of 22 issues were closed.
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <b>Weekly Velocity</b> <br />
+      This chart displays the rolling average over the configured window (6 weeks by default)
+      <br /><br />
+      For example, in this screenshot, on average, the team was completing 4.4 bugs each week over the past 6 weeks.
+    </td>
+    <td align="center">
+      <img alt="Weekly Velocity" src="docs/delivery-dashboard-sample-weekly-velocity.png" width="400" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img alt="Weekly Distribution" src="docs/delivery-dashboard-sample-weekly-distribution.png" width="400" />
+    </td>
+    <td>
+      <b>Effort distribution</b> <br />
+      This chart shows the distribution of nodes per stream.
+      <br /><br />
+      For example, during the week of April 20th, 41% of the completed issues were bugs.
+    </td>
+  </tr>  
+</table>
+
+#### Table
+
+Clicking on the chart opens the table view corresponding to the nodes used to
+calculate the metrics (for that stream and that week).
+
+<p align="center">
+  <img alt="Distribution table" src="docs/delivery-dashboard-sample-table-distribution.png" width="800" />
+</p>
+
+Finally, at the bottom of the dashboard, a table is used to display the
+different data streams and their queries.
+
+# Configuration
+
+Dashboard generation is entirely configuration driven, you'll find below a
+commented configuration file
 
 ```yaml
-steps:
-  - name: Checkout
-    id: checkout
-    uses: actions/checkout@v4
-
-  - name: Test Local Action
-    id: test-action
-    uses: actions/typescript-action@v1 # Commit with the `v1` tag
-    with:
-      milliseconds: 1000
-
-  - name: Print Output
-    id: output
-    run: echo "${{ steps.test-action.outputs.time }}"
+fields:
+  points: Story Points # Name of the Project field used for Story Points
+movingWindow: 6 # in weeks, window to calculate moving average
+# Array of Groups, each group generate one HTML Dashboard
+groups:
+  # Name of the group, will be displayed at the top of the HTML dashboard
+  - name: My First Group
+    # Description displayed below the title in the HTML dashboard
+    description: This dashboards shows the number of tickets by type
+    # An array of streams
+    streams:
+      # Name of the stream
+      - name: Stream Name
+        # Description of the stream
+        description: 'Issues of type bug'
+        # MongoDB Query
+        query: { issueType.name: { $eq: 'Bug' } }
 ```
 
-## Publishing a New Release
+## Advanced Configuration
 
-This project includes a helper script, [`script/release`](./script/release)
-designed to streamline the process of tagging and pushing new releases for
-GitHub Actions.
+### Aggregations (buckets)
 
-GitHub Actions allows users to select a specific version of the action to use,
-based on release tags. This script simplifies this process by performing the
-following steps:
+You might want to generate aggregations by a particular field. This can be done
+by using the `groupByField` parameter, providing the corresponding field to
+group by.
 
-1. **Retrieving the latest release tag:** The script starts by fetching the most
-   recent SemVer release tag of the current branch, by looking at the local data
-   available in your repository.
-1. **Prompting for a new release tag:** The user is then prompted to enter a new
-   release tag. To assist with this, the script displays the tag retrieved in
-   the previous step, and validates the format of the inputted tag (vX.X.X). The
-   user is also reminded to update the version field in package.json.
-1. **Tagging the new release:** The script then tags a new release and syncs the
-   separate major tag (e.g. v1, v2) with the new release tag (e.g. v1.0.0,
-   v2.1.2). When the user is creating a new major release, the script
-   auto-detects this and creates a `releases/v#` branch for the previous major
-   version.
-1. **Pushing changes to remote:** Finally, the script pushes the necessary
-   commits, tags and branches to the remote repository. From here, you will need
-   to create a new release in GitHub so users can easily reference the new tags
-   in their workflows.
+This parameter is not compatible with configuration-provided streams, but
+instead streams will be generated from the result of the aggregations.
 
-## Dependency License Management
+Here is a sample configuration with aggregation:
 
-This template includes a GitHub Actions workflow,
-[`licensed.yml`](./.github/workflows/licensed.yml), that uses
-[Licensed](https://github.com/licensee/licensed) to check for dependencies with
-missing or non-compliant licenses. This workflow is initially disabled. To
-enable the workflow, follow the below steps.
-
-1. Open [`licensed.yml`](./.github/workflows/licensed.yml)
-1. Uncomment the following lines:
-
-   ```yaml
-   # pull_request:
-   #   branches:
-   #     - main
-   # push:
-   #   branches:
-   #     - main
-   ```
-
-1. Save and commit the changes
-
-Once complete, this workflow will run any time a pull request is created or
-changes pushed directly to `main`. If the workflow detects any dependencies with
-missing or non-compliant licenses, it will fail the workflow and provide details
-on the issue(s) found.
-
-### Updating Licenses
-
-Whenever you install or update dependencies, you can use the Licensed CLI to
-update the licenses database. To install Licensed, see the project's
-[Readme](https://github.com/licensee/licensed?tab=readme-ov-file#installation).
-
-To update the cached licenses, run the following command:
-
-```bash
-licensed cache
+```yaml
+fields:
+  points: Story Points
+movingWindow: 6
+groups:
+  - name: Delivery by team
+    groupByField: project.Team
 ```
 
-To check the status of cached licenses, run the following command:
+### Group-level filtering
 
-```bash
-licensed status
+You can filter out the dataset used to generate the streams. This is done by
+providing an optional `query` parameter at the group level.
+
+When provided, all nodes collected from the project, will go through one first
+level of filtering, before the individual streams are generated.
+
+Here is a sample with group-level filtering, this will only use issues closed
+after March 1st, 2025.
+
+```yaml
+fields:
+  points: Story Points
+  # Moving rolling average window in weeks
+movingWindow: 6
+groups:
+  - name: Customer tickets vs. other
+    query: { closedAt: { $gte: '2025-03-01T00:00:00Z' } }
+    streams:
+      - name: Customer
+        description: 'Customer tickets'
+        query: { labels: { $elemMatch: { $eq: 'customer' } } }
+      - name: all tickets
+        description: 'All other tickets'
+        query: {}
 ```
+
+Note that you could also have achieved the same result by adding the date
+restriction to each individual stream.
+
+# Querying
+
+Querying is done towards and in-memory array of nodes using
+[Mingo](https://www.npmjs.com/package/mingo), which makes it possible to query
+the array using a MongoDB syntax.
+
+Understandably though, building the right query can be complex, and it is likely
+that this document will not always be 100% up-to-date with likely evolutions of
+the data model.
+
+Nevertheless, the [TypeScript interfaces](./src/types/delivery.ts) for
+`DeliveryItem` should remain up-to-date and contain relevant details to help you
+build your queries.
+
+## Querying playground
+
+Understandably, queries can be complex to build without a playground to try them
+out.
+
+To help you out, you could being by creating a simple dashboard containing all
+your issues.
+
+```yaml
+fields:
+  points: Story Points
+  # Moving rolling average window in weeks
+movingWindow: 6
+groups:
+  - name: All streams
+    description: Single-stream dashboard
+    streams:
+      - name: All
+        description: 'All'
+        query: {}
+```
+
+Once the dashboard is generated, open it and open the developer tools.
+
+In the Console, load Mingo:
+
+```javascript
+const script = document.createElement('script')
+script.src = 'https://cdn.jsdelivr.net/npm/mingo@6.6.1/dist/mingo.min.js'
+script.onload = () => console.log('Mingo loaded')
+document.head.appendChild(script)
+```
+
+You should see a "Mingo loaded" message.
+
+Then you can try queries like this:
+
+```javascript
+const { Query } = mingo
+
+// Display all nodes
+console.log(window.dataNodes)
+const mingotest = new Query({ type: { $eq: 'Issue' } }).find(window.dataNodes)
+
+// Filtered nodes
+console.log(mingotest.all())
+```
+
+# Usage
+
+You would typically trigger this action manually or run it on a cron/schedule to
+generate periodic reports.
+
+Its configuration would look like this:
+
+```yaml
+name: Generate project metrics
+
+on:
+  workflow_dispatch:
+
+jobs:
+  get-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout need to retrieve the config file
+      - uses: actions/checkout@v4
+      - name: Generate project metrics
+        # Replace main by the release of your choice
+        uses: fgerthoffert/actions-project-activity@main
+        with:
+          token: YOUR_TOKEN
+          config: '.github/project-activity.yml'
+          github_org_name: YOUR_ORG
+          github_project_number: 50
+          views_output_path: './my-reports/'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: project-report
+          path: './my-reports/'
+```
+
+# How to contribute
+
+- Fork the repository
+- npm install
+- Rename .env.example into .env
+- Update the INPUT\_ variables
+- Do your changes
+- npx local-action . src/main.ts .env
+- npm run bundle
+- npm test
+- PR into this repository, detailing your changes
+
+More details about GitHub TypeScript action are
+[available here](https://github.com/actions/typescript-action)
