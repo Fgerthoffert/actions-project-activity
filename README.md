@@ -54,7 +54,7 @@ no GitHub API to retrieve archived cards in a project.
 A discussion was
 [opened on that topic](https://github.com/orgs/community/discussions/158440), in
 the meantime you can filter out your project views using a filter such as
-` updated:>@today-2w`.
+`updated:>@today-2w`.
 
 If nothing progress on that front, a workaround is possible, but will be quite
 more expensive to run (get repos => get issues => get cards => filter matching
