@@ -319,6 +319,18 @@
         return result
       }
 
+      const getLegend = (streamsLength) => {
+        console.log(streamsLength)
+        let legend = {
+          top: 'top',
+          left: 'center',
+          top: 30
+        }
+        if (streamsLength > 8) {
+          legend.type = 'scroll'
+        }
+        return legend
+      }
       function createWeeklyCompletionChart(elementId, data, metric) {
         const chartDom = document.getElementById(elementId)
         const myChart = echarts.init(chartDom)
@@ -344,12 +356,7 @@
               fontSize: 14
             }
           },
-          legend: {
-            type: 'scroll',
-            top: 'top',
-            left: 'center',
-            top: 30
-          },
+          legend: getLegend(data.streams.length),
           tooltip: {
             trigger: 'axis',
             axisPointer: {
@@ -457,12 +464,7 @@
               fontSize: 14
             }
           },
-          legend: {
-            type: 'scroll',
-            top: 'top',
-            left: 'center',
-            top: 30
-          },
+          legend: getLegend(data.streams.length),
           tooltip: {
             trigger: 'axis',
             axisPointer: {
@@ -550,12 +552,7 @@
               fontSize: 14
             }
           },
-          legend: {
-            type: 'scroll',
-            top: 'top',
-            left: 'center',
-            top: 30
-          },
+          legend: getLegend(data.streams.length),
           tooltip: {
             trigger: 'axis',
             axisPointer: {
