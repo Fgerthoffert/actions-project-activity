@@ -12,6 +12,13 @@ export interface ConfigGroup {
   defaultMetrics: 'points' | 'nodes'
   query?: AnyObject
   groupByField?: string
+  streamsTemplate?: string
+  streams: ConfigGroupStream[]
+}
+
+export interface ConfigTemplate {
+  name: string
+  description: string
   streams: ConfigGroupStream[]
 }
 
@@ -21,4 +28,5 @@ export interface Config {
   }
   movingWindow: number
   groups: ConfigGroup[]
+  templates: ConfigTemplate[]
 }

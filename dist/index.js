@@ -38716,7 +38716,25 @@ const loadActionConfig = async (inputYamlConfig) => {
     coreExports.info(`Loaded action config file at: ${inputYamlConfig}`);
     coreExports.debug('JSON representation of the YAML config:');
     coreExports.debug(JSON.stringify(config));
-    return config;
+    // The template itself might contain templates, which are useful to simplify the configuration
+    return {
+        ...config,
+        groups: config.groups.map((group) => {
+            let streams = group.streams;
+            if (group.streamsTemplate !== undefined) {
+                // If a template is defined, we need to find the corresponding template
+                // and replace the streams with the template
+                const streamTemplate = config.templates.find((template) => template.name === group.streamsTemplate);
+                if (streamTemplate !== undefined) {
+                    streams = streamTemplate.streams;
+                }
+            }
+            return {
+                ...group,
+                streams: streams
+            };
+        })
+    };
 };
 
 /**
