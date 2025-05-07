@@ -253,22 +253,51 @@ after March 1st, 2025.
 ```yaml
 fields:
   points: Story Points
-  # Moving rolling average window in weeks
 movingWindow: 6
 groups:
   - name: Customer tickets vs. other
     query: { closedAt: { $gte: '2025-03-01T00:00:00Z' } }
     streams:
       - name: Customer
-        description: 'Customer tickets'
+        description: Customer tickets
         query: { labels: { $elemMatch: { $eq: 'customer' } } }
       - name: all tickets
-        description: 'All other tickets'
+        description: All other tickets
         query: {}
 ```
 
 Note that you could also have achieved the same result by adding the date
 restriction to each individual stream.
+
+### Stream templates
+
+To simplify the configuration and avoid duplicate content, you can define
+streams as a template and use them in a configuration group.
+
+```yaml
+fields:
+  points: Story Points
+movingWindow: 6
+groups:
+  - name: Team A
+    description: Customer tickets for Team A
+    query: { project.Team: { $eq: 'Team A' } }
+    streamsTemplate: teams
+  - name: Team B
+    description: Customer tickets for Team B
+    query: { project.Team: { $eq: 'Team B' } }
+    streamsTemplate: teams
+templates:
+  - name: teams
+    description: Streams common across multiple teams
+    streams:
+      - name: Customer
+        description: Customer tickets
+        query: { labels: { $elemMatch: { $eq: 'customer' } } }
+      - name: Other
+        description: Everything else
+        query: {}
+```
 
 # Querying
 
@@ -302,7 +331,7 @@ groups:
     description: Single-stream dashboard
     streams:
       - name: All
-        description: 'All'
+        description: All
         query: {}
 ```
 
