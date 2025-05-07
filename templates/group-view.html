@@ -309,7 +309,10 @@
 
         let result = `${limited[0].axisValue}<br>`
         limited.forEach((param) => {
-          result += `${param.marker} ${param.seriesName}: ${param.value.toFixed(2)}<br>`
+          if (param.value === undefined) {
+            return
+          }
+          result += `${param.marker} ${param.seriesName}: ${Math.round(param.value)}%<br>`
         })
 
         if (params.length > 10) {
