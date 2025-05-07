@@ -217,6 +217,7 @@
               <th>Name</th>
               <th>Description</th>
               <th>Query</th>
+              <th>Nodes</th>
             </tr>
           </thead>
           <tbody id="details-table-stream">
@@ -297,6 +298,7 @@
                 <td>${stream.name}</td>
                 <td>${stream.description}</td>
                 <td>${JSON.stringify(stream.query)}</td>
+                <td>${stream.nodes.length}</td>
               `
           tableBody.appendChild(row)
         })

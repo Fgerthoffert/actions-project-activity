@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import path from 'path'
 
-import { MetricGroup } from '../types/index.js'
+import { MetricGroup, GitHubProject } from '../types/index.js'
 
 import { getOutputDirectory } from './getOutputDirectory.js'
 import { writeHTMLTemplate } from './writeHTMLTemplate.js'
@@ -11,9 +11,11 @@ import { tpl as indexTemplate } from './compiled-templates/index.html.base64.js'
 
 export const buildViews = async ({
   inputViewsOutputPath,
+  githubProject,
   groups
 }: {
   inputViewsOutputPath: string
+  githubProject: GitHubProject
   groups: MetricGroup[]
 }): Promise<null> => {
   const outputDir = await getOutputDirectory(inputViewsOutputPath)
@@ -46,7 +48,7 @@ export const buildViews = async ({
 
   // Create an index.html file listing all dashboards
   const base64StringIndex = await Buffer.from(
-    JSON.stringify(indexRows)
+    JSON.stringify({ ...githubProject, groups: indexRows })
   ).toString('base64')
 
   const decodedIndexTemplate = Buffer.from(indexTemplate, 'base64').toString(
