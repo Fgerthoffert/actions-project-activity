@@ -304,6 +304,27 @@ templates:
         query: {}
 ```
 
+### Relative dates
+
+You can use relative dates in your Mingo queries. This is not directly supported
+by Mingo/MongoDB, but when loading the configuration, the action will
+automatically replace the dates.
+
+```yaml
+...
+    query:  { closedAt: { $gte: '@today-3m' } },
+...
+```
+
+Will automatically be replaced by the current date - 3 months.
+
+This supports days (d), weeks (w), months (m) and years (y), all from the
+execution date of the action (today).
+
+- @today-3m: 3 Months ago
+- @today-2w: 2 Weeks ago
+- ...
+
 # Querying
 
 Querying is done towards an in-memory array of nodes using

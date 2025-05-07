@@ -302,7 +302,7 @@
         })
       }
 
-      const tooltipFormatter = (params) => {
+      const tooltipFormatter = (params, unit = '') => {
         // Limit tooltip to top 10 values at the point
         const sortedParams = [...params].sort((a, b) => b.value - a.value)
         const limited = sortedParams.slice(0, 10)
@@ -312,7 +312,7 @@
           if (param.value === undefined) {
             return
           }
-          result += `${param.marker} ${param.seriesName}: ${Math.round(param.value)}%<br>`
+          result += `${param.marker} ${param.seriesName}: ${Math.round(param.value)}${unit}<br>`
         })
 
         if (params.length > 10) {
@@ -561,7 +561,7 @@
               type: 'shadow'
             },
             formatter: function (params) {
-              return tooltipFormatter(params)
+              return tooltipFormatter(params, '%')
             }
           },
           grid: {
