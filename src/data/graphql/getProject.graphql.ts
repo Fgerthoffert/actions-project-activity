@@ -12,6 +12,7 @@ export const getProjectGraphQL = `
       projectV2(number: $projectNumber) {
         id
         title
+        url
         items (first: 1) {
           totalCount
         }

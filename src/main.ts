@@ -2,9 +2,12 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 
 import { loadActionConfig } from './utils/index.js'
+import { getProject } from './data/getProject.js'
 import { fetchData } from './data/index.js'
 import { buildMetrics } from './metrics/index.js'
 import { buildViews } from './views/index.js'
+
+import { GitHubProject } from './types/index.js'
 
 /**
  * The main function for the action.
@@ -31,13 +34,22 @@ export async function run(): Promise<void> {
     } = await octokit.rest.users.getAuthenticated()
     core.info(`Successfully authenticated to GitHub as: ${login}`)
 
+    const githubProject: GitHubProject = await getProject({
+      inputGithubToken,
+      ownerLogin: inputGithubOrgName,
+      projectNumber: inputGithubProjectNumber
+    })
+
+    core.info(
+      `Successfully verified project: ${githubProject.title} (ID: ${githubProject.id}) - Total number of cards: ${githubProject.items?.totalCount ?? 0}`
+    )
+
     // Fetch all data from GitHub and return an array of nodes (both Issues and PRs)
     const allNodes = await fetchData({
       inputGithubToken,
-      inputGithubOrgName,
-      inputGithubProjectNumber,
       inputDevCache,
-      config
+      config,
+      githubProject
     })
 
     // Create an array containing all metrics across all groups
@@ -49,6 +61,7 @@ export async function run(): Promise<void> {
     // Build the HTML views
     await buildViews({
       inputViewsOutputPath,
+      githubProject,
       groups: allMetrics
     })
 

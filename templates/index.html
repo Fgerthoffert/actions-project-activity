@@ -30,7 +30,7 @@
       }
 
       .container {
-        max-width: 1200px;
+        max-width: 1800px;
         margin: 0 auto;
         background-color: white;
         border-radius: 8px;
@@ -111,6 +111,37 @@
         font-style: italic;
       }
 
+      a {
+        color: #3498db;
+        text-decoration: none;
+        position: relative;
+        padding: 2px 0;
+        font-weight: 500;
+        transition: color 0.3s ease;
+      }
+
+      a:hover {
+        color: #2980b9;
+      }
+
+      a::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 1px;
+        bottom: 0;
+        left: 0;
+        background-color: #2980b9;
+        transform: scaleX(0);
+        transform-origin: bottom right;
+        transition: transform 0.3s ease;
+      }
+
+      a:hover::after {
+        transform: scaleX(1);
+        transform-origin: bottom left;
+      }
+
       @media (max-width: 768px) {
         .dashboard-table {
           display: block;
@@ -130,9 +161,13 @@
   <body>
     <div class="container">
       <header>
-        <h1>Project Dashboards</h1>
+        <h1 id="dashboard-title">Project Dashboards</h1>
       </header>
-
+      <p class="subtitle">
+        <a id="projectlink" href="https://www.example.com" target="_blank"
+          >Project Link</a
+        >
+      </p>
       <main>
         <table class="dashboard-table">
           <thead>
@@ -150,15 +185,34 @@
     </div>
 
     <script>
-      const srcData = atob('REPLACE_ME')
-      const dashboards = JSON.parse(srcData)
-      console.log('Source data decoded', dashboards)
+      const base64DecodeUnicode = (base64String) => {
+        const binaryString = window.atob(base64String)
+        const bytes = new Uint8Array(binaryString.length)
+
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i)
+        }
+
+        return new TextDecoder('utf-8').decode(bytes)
+      }
+
+      const srcData = base64DecodeUnicode('REPLACE_ME')
+      const project = JSON.parse(srcData)
+      console.log('Source data decoded', project)
+
+      const title = `${project.title} Dashboards`
+      document.title = title
+      document.getElementById('dashboard-title').textContent = title
+
+      const link = document.getElementById('projectlink')
+      link.href = project.url
+      link.textContent = 'Project in GitHub'
 
       // Function to populate the table
       function populateDashboardTable() {
         const tableBody = document.getElementById('dashboard-table-body')
 
-        dashboards.forEach((dashboard) => {
+        project.groups.forEach((dashboard) => {
           const row = document.createElement('tr')
 
           // Dashboard name cell

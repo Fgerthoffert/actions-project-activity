@@ -8,23 +8,20 @@ import {
 } from '../types/index.js'
 
 import { getCacheDirectory } from './getCacheDirectory.js'
-import { getProject } from './getProject.js'
 import { getProjectCards } from './getProjectCards.js'
 import { getIssues } from './getIssues.js'
 import { getPullRequests } from './getPullRequests.js'
 
 export const fetchData = async ({
   inputGithubToken,
-  inputGithubOrgName,
-  inputGithubProjectNumber,
   inputDevCache,
-  config
+  config,
+  githubProject
 }: {
   inputGithubToken: string
-  inputGithubOrgName: string
-  inputGithubProjectNumber: number
   inputDevCache: boolean
   config: Config
+  githubProject: GitHubProject
 }): Promise<DeliveryItem[]> => {
   core.info(`Fetching all data from GitHub`)
 
@@ -33,11 +30,6 @@ export const fetchData = async ({
   const githubProjectCards = await core.group(
     `⬇️ Fetching Project data from GitHub`,
     async () => {
-      const githubProject: GitHubProject = await getProject({
-        inputGithubToken,
-        ownerLogin: inputGithubOrgName,
-        projectNumber: inputGithubProjectNumber
-      })
       core.info(
         `Successfully retrieved project: ${githubProject.title} (ID: ${githubProject.id}) - Total number of cards: ${githubProject.items?.totalCount ?? 0}`
       )

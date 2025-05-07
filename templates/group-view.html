@@ -217,6 +217,7 @@
               <th>Name</th>
               <th>Description</th>
               <th>Query</th>
+              <th>Nodes</th>
             </tr>
           </thead>
           <tbody id="details-table-stream">
@@ -297,19 +298,23 @@
                 <td>${stream.name}</td>
                 <td>${stream.description}</td>
                 <td>${JSON.stringify(stream.query)}</td>
+                <td>${stream.nodes.length}</td>
               `
           tableBody.appendChild(row)
         })
       }
 
-      const tooltipFormatter = (params) => {
+      const tooltipFormatter = (params, unit = '') => {
         // Limit tooltip to top 10 values at the point
         const sortedParams = [...params].sort((a, b) => b.value - a.value)
         const limited = sortedParams.slice(0, 10)
 
         let result = `${limited[0].axisValue}<br>`
         limited.forEach((param) => {
-          result += `${param.marker} ${param.seriesName}: ${param.value.toFixed(2)}<br>`
+          if (param.value === undefined) {
+            return
+          }
+          result += `${param.marker} ${param.seriesName}: ${Math.round(param.value)}${unit}<br>`
         })
 
         if (params.length > 10) {
@@ -558,7 +563,7 @@
               type: 'shadow'
             },
             formatter: function (params) {
-              return tooltipFormatter(params)
+              return tooltipFormatter(params, '%')
             }
           },
           grid: {
