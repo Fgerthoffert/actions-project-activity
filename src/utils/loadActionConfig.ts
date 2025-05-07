@@ -10,7 +10,7 @@ import { Config, ConfigGroup, ConfigTemplate } from '../types/index.js'
  * @param date - The date to format. It is expected to be a valid Date object.
  * @returns A string representing the formatted date in "YYYY-MM-DD" format.
  */
-const formatDate = (date: any) => {
+const formatDate = (date: Date) => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
@@ -41,33 +41,30 @@ const replaceDatesInConfig = (configString: string, baseDate = new Date()) => {
   // @today-[number][unit] where unit is d, w, m, or y
   const dateExprRegex = /@today-(\d+)([dwmy])/gi
 
-  return configString.replace(
-    dateExprRegex,
-    (match: any, value: any, unit: any) => {
-      const numValue = parseInt(value, 10)
-      const date = new Date(baseDate)
+  return configString.replace(dateExprRegex, (match, value, unit) => {
+    const numValue = parseInt(value, 10)
+    const date = new Date(baseDate)
 
-      switch (unit.toLowerCase()) {
-        case 'd':
-          date.setDate(date.getDate() - numValue)
-          break
-        case 'w':
-          date.setDate(date.getDate() - numValue * 7)
-          break
-        case 'm':
-          date.setMonth(date.getMonth() - numValue)
-          break
-        case 'y':
-          date.setFullYear(date.getFullYear() - numValue)
-          break
-        default:
-          return match // Return original if unit not recognized
-      }
-
-      // Format the date as YYYY-MM-DD
-      return formatDate(date)
+    switch (unit.toLowerCase()) {
+      case 'd':
+        date.setDate(date.getDate() - numValue)
+        break
+      case 'w':
+        date.setDate(date.getDate() - numValue * 7)
+        break
+      case 'm':
+        date.setMonth(date.getMonth() - numValue)
+        break
+      case 'y':
+        date.setFullYear(date.getFullYear() - numValue)
+        break
+      default:
+        return match // Return original if unit not recognized
     }
-  )
+
+    // Format the date as YYYY-MM-DD
+    return formatDate(date)
+  })
 }
 
 // Loads a config YAML file from the provided path
