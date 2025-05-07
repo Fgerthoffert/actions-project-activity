@@ -240,8 +240,19 @@
     </div>
 
     <script>
+      const base64DecodeUnicode = (base64String) => {
+        const binaryString = window.atob(base64String)
+        const bytes = new Uint8Array(binaryString.length)
+
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i)
+        }
+
+        return new TextDecoder('utf-8').decode(bytes)
+      }
+
       // Single JavaScript data object containing all our data
-      const srcData = atob('REPLACE_ME')
+      const srcData = base64DecodeUnicode('REPLACE_ME')
       const groupMetrics = JSON.parse(srcData)
       console.log('Source data decoded', groupMetrics)
 
