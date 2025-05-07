@@ -2,7 +2,7 @@
 <p align="center">
   <img alt="ZenCrepesLogo" src="docs/zencrepes-logo.png" height="140" />
   <h2 align="center">Metrics for GitHub Projects</h2>
-  <p align="center">A GitHub Action that generate metrics out of the content of GitHub Projects</p>
+  <p align="center">A GitHub Action to generate metrics out of the content of GitHub Projects</p>
 </p>
 
 ---
@@ -21,13 +21,13 @@
 
 # About
 
-This action is directly inspired by work previously done for
-[ZenCrepes](https://github.com/zencrepes) and
+This action is directly inspired by the metrics and dashboard generation
+approaches used in [ZenCrepes](https://github.com/zencrepes) and
 [Jira Agile Velocity](https://github.com/Fgerthoffert/jira-agile-velocity) and
 aims at providing detailed metrics about a single GitHub Project.
 
 The data is then made available in self-contained HTML pages, with simple
-feature to interact with the views.
+user-friendly controls to interact with the views.
 
 <p align="center">
   <img alt="Delivery Dashboard" src="docs/delivery-dashboard.png" width="800" />
@@ -35,21 +35,25 @@ feature to interact with the views.
 
 # Features
 
-- Displays results in nodes (Issues or PRs) count or Story Points
-- Self-contained and client-side, no need for server-side rendering.
+- Displays results as node counts (Issues or PRs) or Story Points
+- Fully self-contained and operates on the client-side, eliminating the need for
+  server-side rendering.
 - Switch between count-based or Story Points-based metrics.
 - 3 Charts:
   - Weekly completion
   - Moving average (velocity) over configurable window (6 weeks by default)
   - Effort distribution
-- A table view to relate calculated metrics to the actual data nodes (Issues or
-  PRs)
-- Stateless, all of the metrics is calculated from data in GitHub
+- A table view to link calculated metrics to actual data nodes (Issues or PRs)
+- Stateless, all of the metrics are calculated from data in GitHub
+- Multiple levels of filtering, allowing users to apply filters at both group
+  and stream levels for more granular data selection
+  ([doc](#group-level-filtering))
+- Generate streams from of aggregations ([doc](#aggregations-buckets))
 
 # Limitation
 
-For the time being, this only works with non-archived items. There's currently
-no GitHub API to retrieve archived cards in a project.
+For the time being, this only works with non-archived items. This limitation is
+due to the current lack of a GitHub API to retrieve archived cards in a project.
 
 A discussion was
 [opened on that topic](https://github.com/orgs/community/discussions/158440), in
@@ -57,8 +61,9 @@ the meantime you can filter out your project views using a filter such as
 `updated:>@today-2w`.
 
 If nothing progress on that front, a workaround is possible, but will be quite
-more expensive to run (get repos => get issues => get cards => filter matching
-project).
+If nothing progresses on that front, a workaround is possible, but it will
+involve significantly more API calls and processing time, making it less
+efficient to run. project).
 
 # Overview
 
@@ -66,15 +71,15 @@ The action fetches all data from the configured GitHub project and will collect
 data about all closed Issues and Pull Requests in the project.
 
 Using a provided configuration file, it can generate multiple dashboards over
-the same data with each of these dashboards supporting multile data streams.
+the same data with each of these dashboards supporting multiple data streams.
 
 But first, some details about terminology:
 
-- A **node** refers indiferently to a GitHub Issue or a GitHub PullRequest
+- A **node** refers indifferently to a GitHub Issue or a GitHub PullRequest
   attached to a project.
 - A **group** is composed of one or more streams. For each group, an HTML
-  dashboard is generated. Groups are unrelated to eachother.
-- A **stream** represent of set of similares issues from which you'd like to
+  dashboard is generated. Groups are unrelated to each other.
+- A **stream** represents a set of similar issues from which you'd like to
   collect some metrics. It uses a MongoDB **query** is a MongoDB query (using
   [Mingo](https://www.npmjs.com/package/mingo)). Streams are executed in
   sequence, if a node is found in a stream, it is automatically removed from the
@@ -301,7 +306,7 @@ templates:
 
 # Querying
 
-Querying is done towards and in-memory array of nodes using
+Querying is done towards an in-memory array of nodes using
 [Mingo](https://www.npmjs.com/package/mingo), which makes it possible to query
 the array using a MongoDB syntax.
 
