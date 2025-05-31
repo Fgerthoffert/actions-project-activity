@@ -11,6 +11,7 @@ import { getCacheDirectory } from './getCacheDirectory.js'
 import { getProjectCards } from './getProjectCards.js'
 import { getIssues } from './getIssues.js'
 import { getPullRequests } from './getPullRequests.js'
+import { getInitiatives } from './getInitiatives.js'
 
 export const fetchData = async ({
   inputGithubToken,
@@ -44,6 +45,13 @@ export const fetchData = async ({
     }
   )
 
+  // Fetching initiatives listed in the config
+  const issuesWithInitiatives = await getInitiatives({
+    inputGithubToken,
+    inputDevCache,
+    config
+  })
+
   const githubIssues = await core.group(
     `⬇️ Fetching Issues from GitHub`,
     async () => {
@@ -51,6 +59,7 @@ export const fetchData = async ({
         inputGithubToken,
         config,
         githubProjectCards,
+        issuesWithInitiatives,
         dataCacheDir,
         devCache: inputDevCache
       })

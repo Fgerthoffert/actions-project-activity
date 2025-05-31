@@ -212,6 +212,8 @@ groups:
   - name: My First Group
     # Description displayed below the title in the HTML dashboard
     description: This dashboards shows the number of tickets by type
+    # An optional category, used to regroup groups in the Dashboard index.
+    category: My Category
     # An array of streams
     streams:
       # Name of the stream
@@ -223,6 +225,76 @@ groups:
 ```
 
 ## Advanced Configuration
+
+### Initiatives
+
+It is sometimes interesting to measure how a team is able to maintain its focus
+while working on a particular initiative.
+
+In this context, an initiative (or Epic, or tree of children) is a GitHub Issue
+having children. The action will recursively retrieve all children of a GitHub
+Issue. It will then attach an "initiative" object to all of the children issues.
+
+Here is a sample configuration for initiative:
+
+```yaml
+fields:
+  points: Story Points
+  # Moving rolling average window in weeks
+movingWindow: 6
+initiatives:
+  - name: 'My Initiative'
+    repository: MyOrg/MyRepo
+    issueNumber: 63
+  - name: 'Another Initiative'
+    repository: MyOrg/MyOtherRepo
+    issueNumber: 123
+```
+
+The initiative attached to the issue will match the following type or be `null`
+if none were found:
+
+```typescript
+interface DeliveryInitiative {
+  id: string // The GitHub Issue ID of the initiative issue
+  name: string // The name of the initiative from the configuration
+  title: string // The GitHub Issue title of the initiative
+  url: string // The GitHub Issue URL of the initiative
+}
+```
+
+You can then simply filter issues with queries, here's a sample configuration
+for a group.
+
+```yaml
+fields:
+  points: Story Points
+movingWindow: 6
+initiatives:
+  - name: 'My Initiative'
+    repository: MyOrg/MyRepo
+    issueNumber: 63
+groups:
+  - name: My Team focus
+    description:
+      'Ratio of tickets associated to an initiative vs. all other tickets
+      completed by the team'
+    defaultMetric: nodes
+    streams:
+      - name: My Initiative
+        description: 'Tickets associated with the team initiative'
+        query:
+          {
+            $and:
+              [
+                { initiative.name: { $eq: 'My Initiative' } },
+                { project.Team: { $eq: 'My Team' } }
+              ]
+          }
+      - name: All other tickets
+        description: 'All other tickets by the team'
+        query: { project.Team: { $eq: 'My Team' } }
+```
 
 ### Aggregations (buckets)
 

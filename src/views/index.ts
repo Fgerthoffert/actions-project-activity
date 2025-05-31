@@ -42,6 +42,7 @@ export const buildViews = async ({
     indexRows.push({
       name: group.name,
       description: group.description,
+      category: group.category,
       link: `${group.id}.html`
     })
   }
