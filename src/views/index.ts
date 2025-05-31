@@ -6,6 +6,8 @@ import { MetricGroup, GitHubProject } from '../types/index.js'
 import { getOutputDirectory } from './getOutputDirectory.js'
 import { writeHTMLTemplate } from './writeHTMLTemplate.js'
 
+import { getId } from '../utils/getId.js'
+
 import { tpl as dashboardTemplate } from './compiled-templates/group-view.html.base64.js'
 import { tpl as indexTemplate } from './compiled-templates/index.html.base64.js'
 
@@ -36,14 +38,17 @@ export const buildViews = async ({
       base64String
     )
     await writeHTMLTemplate(
-      path.join(outputDir, `${group.id}.html`),
+      path.join(
+        outputDir,
+        `${getId(`${group.category === undefined ? '' : group.category}${group.id}`)}.html`
+      ),
       updatedHtmlTemplate
     )
     indexRows.push({
       name: group.name,
       description: group.description,
       category: group.category,
-      link: `${group.id}.html`
+      link: `${getId(`${group.category === undefined ? '' : group.category}${group.id}`)}.html`
     })
   }
 

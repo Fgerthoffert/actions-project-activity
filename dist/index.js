@@ -48654,12 +48654,12 @@ const buildViews = async ({ inputViewsOutputPath, githubProject, groups }) => {
         const base64String = await Buffer.from(JSON.stringify(group)).toString('base64');
         const decodedDashboardTemplate = Buffer.from(tpl$1, 'base64').toString('utf8');
         const updatedHtmlTemplate = decodedDashboardTemplate.replace('REPLACE_ME', base64String);
-        await writeHTMLTemplate(path__default.join(outputDir, `${group.id}.html`), updatedHtmlTemplate);
+        await writeHTMLTemplate(path__default.join(outputDir, `${getId(`${group.category === undefined ? '' : group.category}${group.id}`)}.html`), updatedHtmlTemplate);
         indexRows.push({
             name: group.name,
             description: group.description,
             category: group.category,
-            link: `${group.id}.html`
+            link: `${getId(`${group.category === undefined ? '' : group.category}${group.id}`)}.html`
         });
     }
     // Create an index.html file listing all dashboards
