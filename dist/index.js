@@ -41968,6 +41968,10 @@ const getInitiatives = async ({ inputGithubToken, inputDevCache, config }) => {
     coreExports.info(`Fetching all data from GitHub`);
     const dataCacheDir = await getCacheDirectory('actions-project-activity');
     let allNodes = [];
+    if (config.initiatives === undefined) {
+        coreExports.info(`No initiatives configured, skipping fetching initiatives`);
+        return allNodes;
+    }
     for (const initiative of config.initiatives) {
         const initiativeNodes = await coreExports.group(`⬇️ Fetching data about initiative #${initiative.issueNumber} from ${initiative.repository}`, async () => {
             // Check that the initiative exists
