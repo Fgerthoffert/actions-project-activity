@@ -45,7 +45,7 @@ export const getPullRequests = async ({
     deliveryItems = cacheData
   } else {
     core.info(
-      `No existing cache found for PRs, or caching disabled Fetching from GitHub...`
+      `No existing cache found for PRs, or caching disabled, fetching from GitHub...`
     )
 
     const prs: GitHubPullRequest[] = await getNodesByIds({
@@ -61,7 +61,11 @@ export const getPullRequests = async ({
     })
 
     // augment issues with additional data coming from the project cards
-    deliveryItems = augmentNodes(prs, githubProjectCards, config.fields.points)
+    deliveryItems = augmentNodes({
+      nodes: prs,
+      githubProjectCards: githubProjectCards,
+      pointsField: config.fields.points
+    })
   }
 
   await cache.setKey('prs', deliveryItems)

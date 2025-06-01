@@ -5,7 +5,8 @@ import {
   Config,
   GitHubProjectCard,
   GitHubIssue,
-  DeliveryItem
+  DeliveryItem,
+  DeliveryItemWithInitiative
 } from '../types/index.js'
 
 import { getIssuesGraphQL } from './graphql/getIssues.graphql.js'
@@ -17,12 +18,14 @@ export const getIssues = async ({
   inputGithubToken,
   config,
   githubProjectCards,
+  issuesWithInitiatives,
   dataCacheDir,
   devCache = false
 }: {
   inputGithubToken: string
   config: Config
   githubProjectCards: GitHubProjectCard[]
+  issuesWithInitiatives: DeliveryItemWithInitiative[]
   dataCacheDir: string
   devCache?: boolean
 }): Promise<DeliveryItem[]> => {
@@ -43,7 +46,7 @@ export const getIssues = async ({
     deliveryItems = cacheData
   } else {
     core.info(
-      `No existing cache found for issues, or caching disabled Fetching from GitHub...`
+      `No existing cache found for issues, or caching disabled, fetching from GitHub...`
     )
 
     const issues: GitHubIssue[] = await getNodesByIds({
@@ -61,11 +64,12 @@ export const getIssues = async ({
     })
 
     // Augment issues with additional data coming from the project cards
-    deliveryItems = augmentNodes(
-      issues,
-      githubProjectCards,
-      config.fields.points
-    )
+    deliveryItems = augmentNodes({
+      nodes: issues,
+      githubProjectCards: githubProjectCards,
+      issuesWithInitiatives: issuesWithInitiatives,
+      pointsField: config.fields.points
+    })
   }
 
   await cache.setKey('issues', deliveryItems)

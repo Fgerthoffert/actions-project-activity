@@ -5,7 +5,8 @@ import {
   GitHubProjectV2ItemFieldValue,
   GitHubLabel,
   GitHubProject,
-  DeliveryItem
+  DeliveryItem,
+  DeliveryItemWithInitiative
 } from '../types/index.js'
 
 /**
@@ -19,11 +20,17 @@ import {
  * @param pointsField - The name of the field in the project cards used to calculate points.
  * @returns A new array of GitHub issues or pull requests with augmented data.
  */
-export const augmentNodes = (
-  nodes: GitHubIssue[] | GitHubPullRequest[],
-  githubProjectCards: GitHubProjectCard[],
+export const augmentNodes = ({
+  nodes,
+  githubProjectCards,
+  issuesWithInitiatives = [],
+  pointsField
+}: {
+  nodes: GitHubIssue[] | GitHubPullRequest[]
+  githubProjectCards: GitHubProjectCard[]
+  issuesWithInitiatives?: DeliveryItemWithInitiative[]
   pointsField: string
-): DeliveryItem[] => {
+}): DeliveryItem[] => {
   return nodes.map((node) => {
     // Align mergedAt date to closedAt to simplify the logic downstream
     // We're only
@@ -34,6 +41,9 @@ export const augmentNodes = (
       }
     }
     const card = githubProjectCards.find((card) => card.content?.id === node.id)
+    const initiative = issuesWithInitiatives.find(
+      (issue) => issue.id === node.id
+    )
     let points = 0
     let projectFields = {}
     if (card) {
@@ -107,7 +117,8 @@ export const augmentNodes = (
       ),
       project: {
         ...projectFields
-      }
+      },
+      initiative: initiative !== undefined ? initiative.initiative : null
     }
   })
 }

@@ -59,6 +59,11 @@ export interface GitHubProjectCard {
   }
 }
 
+export interface GitHubSubIssueEdge {
+  cursor: string
+  node: GitHubIssue
+}
+
 export interface GitHubLabel {
   name: string
 }
@@ -86,6 +91,10 @@ export interface GitHubIssue extends GitHubIssueBase {
   mergedAt: string | null
   issueType: {
     name: string
+  }
+  subIssues: {
+    totalCount: number
+    nodes: GitHubIssue[]
   }
 }
 

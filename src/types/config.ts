@@ -6,6 +6,13 @@ interface ConfigGroupStream {
   query: AnyObject
 }
 
+interface ConfigInitiative {
+  name: string
+  description: string
+  repository: string
+  issueNumber: number
+}
+
 export interface ConfigGroup {
   name: string
   description: string
@@ -27,6 +34,7 @@ export interface Config {
     [key: string]: string
   }
   movingWindow: number
+  initiatives: ConfigInitiative[]
   groups: ConfigGroup[]
   templates: ConfigTemplate[]
 }

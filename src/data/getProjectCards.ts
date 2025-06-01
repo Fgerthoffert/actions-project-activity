@@ -46,7 +46,7 @@ export const getProjectCards = async ({
     projectCards = cacheData
   } else {
     core.info(
-      `No existing cache found for project cards, or caching disabled Fetching from GitHub...`
+      `No existing cache found for project cards, or caching disabled, fetching from GitHub...`
     )
 
     const graphQLResponse: ProjectCardsResponse = await octokit.graphql

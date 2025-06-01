@@ -168,20 +168,7 @@
           >Project Link</a
         >
       </p>
-      <main>
-        <table class="dashboard-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Description</th>
-              <th>Access</th>
-            </tr>
-          </thead>
-          <tbody id="dashboard-table-body">
-            <!-- Table rows will be dynamically inserted here -->
-          </tbody>
-        </table>
-      </main>
+      <main></main>
     </div>
 
     <script>
@@ -212,29 +199,97 @@
       function populateDashboardTable() {
         const tableBody = document.getElementById('dashboard-table-body')
 
-        project.groups.forEach((dashboard) => {
-          const row = document.createElement('tr')
+        const categories = project.groups.reduce((acc, group) => {
+          let category = acc.find((cat) => cat.name === group.category)
+          if (!category) {
+            category = { name: group.category, groups: [] }
+            acc.push(category)
+          }
+          category.groups.push(group)
+          return acc
+        }, [])
+        console.log('Dashboards groupped by category: ', categories)
 
-          // Dashboard name cell
-          const nameCell = document.createElement('td')
-          nameCell.textContent = dashboard.name
-          row.appendChild(nameCell)
+        // Clear the main content area first
+        const main = document.querySelector('main')
+        main.innerHTML = ''
 
-          // Description cell
-          const descCell = document.createElement('td')
-          descCell.textContent = dashboard.description
-          row.appendChild(descCell)
+        // Create a single colgroup to enforce column widths
+        function createColGroup() {
+          const colgroup = document.createElement('colgroup')
+          const nameCol = document.createElement('col')
+          nameCol.style.width = '25%'
+          const descCol = document.createElement('col')
+          descCol.style.width = '55%'
+          const accessCol = document.createElement('col')
+          accessCol.style.width = '20%'
+          colgroup.appendChild(nameCol)
+          colgroup.appendChild(descCol)
+          colgroup.appendChild(accessCol)
+          return colgroup
+        }
 
-          // Access button cell
-          const accessCell = document.createElement('td')
-          const accessLink = document.createElement('a')
-          accessLink.href = dashboard.link
-          accessLink.className = 'btn'
-          accessLink.textContent = 'View Dashboard'
-          accessCell.appendChild(accessLink)
-          row.appendChild(accessCell)
+        // Sort categories so that those with undefined name come first
+        categories.sort((a, b) => {
+          if (a.name === undefined && b.name !== undefined) return -1
+          if (a.name !== undefined && b.name === undefined) return 1
+          return 0
+        })
 
-          tableBody.appendChild(row)
+        categories.forEach((category) => {
+          // Create and append category header if name is defined
+          if (category.name !== undefined) {
+            const categoryHeader = document.createElement('h2')
+            categoryHeader.textContent = category.name
+            main.appendChild(categoryHeader)
+          }
+
+          // Create table for this category
+          const table = document.createElement('table')
+          table.className = 'dashboard-table'
+
+          // Add colgroup for consistent column widths
+          table.appendChild(createColGroup())
+
+          // Create table head
+          const thead = document.createElement('thead')
+          const headRow = document.createElement('tr')
+          ;['Name', 'Description', 'Access'].forEach((text) => {
+            const th = document.createElement('th')
+            th.textContent = text
+            headRow.appendChild(th)
+          })
+          thead.appendChild(headRow)
+          table.appendChild(thead)
+
+          // Create table body
+          const tbody = document.createElement('tbody')
+          category.groups.forEach((dashboard) => {
+            const row = document.createElement('tr')
+
+            // Dashboard name cell
+            const nameCell = document.createElement('td')
+            nameCell.textContent = dashboard.name
+            row.appendChild(nameCell)
+
+            // Description cell
+            const descCell = document.createElement('td')
+            descCell.textContent = dashboard.description
+            row.appendChild(descCell)
+
+            // Access button cell
+            const accessCell = document.createElement('td')
+            const accessLink = document.createElement('a')
+            accessLink.href = dashboard.link
+            accessLink.className = 'btn'
+            accessLink.textContent = 'View Dashboard'
+            accessCell.appendChild(accessLink)
+            row.appendChild(accessCell)
+
+            tbody.appendChild(row)
+          })
+          table.appendChild(tbody)
+          main.appendChild(table)
         })
       }
 
