@@ -1,8 +1,7 @@
 name: 'Project activity metrics'
 description:
-  'Generates activity dashboards for GitHub projects by analyzing issues andAdd
-  commentMore actions project data. Useful for tracking project metrics and
-  visualizing activity trends.'
+  'Generates dashboards for GitHub projects by analyzing issues and project data
+  to track metrics and activity trends.'
 author: 'fgerthoffert'
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
