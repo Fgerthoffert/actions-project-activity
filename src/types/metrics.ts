@@ -1,6 +1,38 @@
 import type { AnyObject } from 'mingo/types'
 
-import { DeliveryItem } from './delivery.js'
+import { DeliveryItem } from './index.js'
+
+export interface TimelineMetrics {
+  datapoints: number[]
+  min: number
+  max: number
+  median: number
+  l90: {
+    datapoints: number[]
+    min: number
+    max: number
+    median: number
+  }
+}
+
+export interface TimelineSubGroup {
+  description: string
+  metrics: TimelineMetrics
+  name: string
+  nodes: DeliveryItem[]
+  query?: AnyObject
+}
+
+export interface TimelineGroup {
+  id: string
+  name: string
+  description: string
+  field: string
+  updatedAt: string
+  nodes: DeliveryItem[]
+  groups: TimelineSubGroup[]
+  metrics: TimelineMetrics
+}
 
 export interface MetricGroup {
   id: string

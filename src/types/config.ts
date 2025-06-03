@@ -1,16 +1,32 @@
 import type { AnyObject } from 'mingo/types'
 
-interface ConfigGroupStream {
+export interface ConfigGroupStream {
   name: string
   description: string
   query: AnyObject
 }
 
-interface ConfigInitiative {
+export interface ConfigInitiative {
   name: string
   description: string
   repository: string
   issueNumber: number
+}
+
+export interface ConfigTimelineGroup {
+  name: string
+  description: string
+  fields: string[]
+  valueFrom: string
+  valueTo?: string
+  query: AnyObject
+  groupByField?: string
+}
+
+export interface ConfigTimeline {
+  baseUrl: string
+  enabled: boolean
+  groups: ConfigTimelineGroup[]
 }
 
 export interface ConfigGroup {
@@ -35,6 +51,7 @@ export interface Config {
   }
   movingWindow: number
   initiatives: ConfigInitiative[]
+  timeline?: ConfigTimeline
   groups: ConfigGroup[]
   templates: ConfigTemplate[]
 }

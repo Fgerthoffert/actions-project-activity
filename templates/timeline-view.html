@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Projects Activity</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@4.1.0/cdn.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 1800px;
+        margin: 0 auto;
+      }
+      .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .dashboard-title {
+        margin: 0;
+      }
+      .row {
+        display: flex;
+        margin-bottom: 30px;
+        gap: 20px;
+      }
+      .chart-container {
+        flex: 1;
+        height: 600px;
+        border: 1px solid #eaeaea;
+        border-radius: 5px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      th,
+      td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      th {
+        background-color: #f8f8f8;
+        font-weight: bold;
+      }
+      tr:hover {
+        background-color: #f5f5f5;
+      }
+      a {
+        color: #1a73e8;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .table-container {
+        margin-top: 20px;
+        border: 1px solid #eaeaea;
+        border-radius: 5px;
+        padding: 15px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .table-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        margin-bottom: 5px;
+      }
+      .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      h2,
+      h3 {
+        margin: 0;
+        color: #444;
+      }
+      .source-description {
+        font-style: italic;
+        color: #666;
+      }
+      .source-info {
+        font-style: italic;
+        font-size: smaller;
+        color: #666;
+      }
+      .view-mode {
+        margin-left: 8px;
+        font-weight: bold;
+        min-width: 90px;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="index.html">🔙</a>
+    <div class="container">
+      <div class="dashboard-header">
+        <h2 id="dashboard-title" class="dashboard-title"></h2>
+      </div>
+      <p class="source-description" id="dashboard-description"></p>
+      <p class="source-info" id="dashboard-metadata"></p>
+
+      <div class="row">
+        <div class="chart-container" id="weeklycompletionchart"></div>
+      </div>
+      <p class="source-info">
+        *90th Percentile: Highlights the 90% of the nodes with the
+        <b>lowest duration</b>. Only shown if there are more than 2 datapoints
+        in the group.
+      </p>
+
+      <div class="table-container">
+        <div class="table-header">
+          <h3 id="table-title"></h3>
+          <span id="selected-source">Click on chart elements see details</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Title</th>
+              <th>Type</th>
+              <th>Repo</th>
+              <th>Milestone</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody id="details-table">
+            <tr>
+              <td colspan="3">No data selected</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="source-info" id="dashboard-projectfilter"></p>
+    </div>
+
+    <script>
+      const base64DecodeUnicode = (base64String) => {
+        const binaryString = window.atob(base64String)
+        const bytes = new Uint8Array(binaryString.length)
+
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i)
+        }
+
+        return new TextDecoder('utf-8').decode(bytes)
+      }
+
+      // Single JavaScript data object containing all our data
+      const srcData = base64DecodeUnicode('REPLACE_ME')
+      const groupMetrics = JSON.parse(srcData)
+      console.log('Source data decoded', groupMetrics)
+
+      // Copied to the window object to facilitate building of queries
+      window.dataNodes = groupMetrics.nodes
+
+      document.title = groupMetrics.name
+
+      // Update the table with data clicked in the chart
+      function updateTable({ srcChart, selection, nodes }) {
+        document.getElementById('table-title').textContent =
+          `Nodes from ${srcChart}`
+        document.getElementById('selected-source').textContent =
+          `Selection: ${selection}`
+
+        const tableBody = document.getElementById('details-table')
+        tableBody.innerHTML = ''
+
+        nodes.forEach((node) => {
+          const row = document.createElement('tr')
+          row.innerHTML = `
+                <td>${node.number}</td>
+                <td><a href="${node.url}" target="_blank">${node.title}</a></td>
+                <td>${node.type}</td>
+                <td><a href="${node.repository.url}" target="_blank">${node.repository.owner.login}/${node.repository.name}</a></td>
+                <td>${node.milestone?.title ? node.milestone?.title : ''}</td>
+                <td>${node.points}</td>
+              `
+          tableBody.appendChild(row)
+        })
+      }
+
+      const tooltipFormatter = (params, groups) => {
+        // let result = `${params[0].value[0]} day${params[0].value[0] > 1 ? 's' : ''}: ${params[0].value[2]} node${params[0].value[2] > 1 ? 's' : ''}`
+        const group = groups.find((g) => g.name === params.seriesName)
+        if (!group) {
+          return 'No data available for this group'
+        }
+
+        const daysCount = params.value[0]
+        const selectedNodes = group.nodes.filter(
+          (node) => node.timelineMetrics.duration === daysCount
+        )
+
+        let result = `<b>${params.seriesName}</b><br />`
+        result += `${selectedNodes.length} node${selectedNodes.length > 1 ? 's' : ''} in ${daysCount} day${daysCount > 1 ? 's' : ''}<br />`
+        result += `Median: ${group.metrics.l90.median} days<br />`
+        return result
+      }
+
+      function createTimelineChart(elementId, data) {
+        // Placeholders for the chart
+        const title = []
+        const singleAxis = []
+        const series = []
+
+        const nbDays = data.nodes.map((item) => item.timelineMetrics.duration)
+
+        const groups = data.groups.length > 0 ? data.groups : [data]
+
+        // Generate an array of all days between the minimum and maximum days
+        const minDay = Math.min(...nbDays)
+        const maxDay = Math.max(...nbDays)
+        const allDays = []
+        for (let i = minDay; i <= maxDay; i++) {
+          allDays.push(i)
+        }
+
+        console.log(`Min: ${minDay}, Max: ${maxDay}, All days: ${allDays}`)
+
+        groups.forEach(function (group, idx) {
+          const centerline = idx === 0 ? 20 : 20 + idx * 20
+          const uniquel90Days = Array.from(
+            new Set(group.metrics.l90.datapoints)
+          )
+          // generate a nice HTML color based on "group.name"
+          const color = `hsl(${(idx * 360) / groups.length}, 70%, 50%)`
+
+          // Only display the 90%ils if there are more than 2 datapoints
+          if (group.metrics.datapoints.length > 2) {
+            series.push({
+              name: 'median',
+              data: [
+                [group.metrics.l90.median, centerline - 6],
+                [group.metrics.l90.median, centerline - 3]
+              ],
+              type: 'line',
+              silent: true,
+              hoverAnimation: false,
+              emphasis: {
+                disabled: true
+              },
+              lineStyle: {
+                color: color,
+                type: 'solid',
+                width: 3
+              },
+              showSymbol: false,
+              animation: false
+            })
+          }
+          series.push({
+            name: group.name, // Add name for legend
+            symbolSize: function (dataItem) {
+              return dataItem[2] === 0 ? 0 : 5 + dataItem[2] * 5
+            },
+            data: allDays.map((day) => {
+              const dayData = group.nodes.filter(
+                (item) => item.timelineMetrics.duration === day
+              )
+              const count = dayData.length
+              return [day, centerline, count]
+            }),
+            type: 'scatter',
+            itemStyle: {
+              color: color
+            },
+            // markPoint: {
+            //   data: [{ yAxis: centerline, xAxis: group.metrics.l90.median }]
+            // },
+            markArea:
+              uniquel90Days.length <= 2
+                ? false
+                : {
+                    silent: true,
+                    itemStyle: {
+                      color: 'transparent',
+                      borderWidth: 1,
+                      borderType: 'dashed'
+                    },
+                    data: [
+                      [
+                        {
+                          name: '90th Percentile',
+                          xAxis: group.metrics.l90.min,
+                          yAxis: centerline - 5
+                        },
+                        {
+                          xAxis: group.metrics.l90.max,
+                          yAxis: centerline + 5
+                        }
+                      ]
+                    ]
+                  }
+          })
+        })
+
+        // Add legend to options
+
+        const chartDom = document.getElementById(elementId)
+        const myChart = echarts.init(chartDom)
+
+        const option = {
+          title: title,
+          xAxis: {
+            type: 'value',
+            minInterval: 1,
+            maxInterval: 1,
+            splitNumber: 10,
+            splitLine: {
+              show: true,
+              lineStyle: {
+                type: 'dashed'
+              }
+            }
+          },
+          tooltip: {
+            trigger: 'item',
+            axisPointer: {
+              type: 'shadow'
+            },
+            formatter: function (params) {
+              return tooltipFormatter(params, groups)
+            }
+          },
+          yAxis: {
+            show: false,
+            max: 20 + groups.length * 20
+          },
+          legend: {
+            left: 'center',
+            top: 10
+          },
+          series: series
+        }
+
+        // Apply options to chart
+        myChart.setOption(option)
+
+        // Add click event for interactivity
+        myChart.on('click', function (params) {
+          const groupName = params.seriesName
+          const groupIndex = params.dataIndex
+          const group = groups.find((group) => group.name === groupName)
+          console.log(
+            `Clicked on group: ${groupName}, index: ${groupIndex}, data:`,
+            group
+          )
+          if (group && group.nodes.length > 0) {
+            const groupSelection = group.nodes.filter(
+              (node) => node.timelineMetrics.duration === groupIndex
+            )
+            updateTable({
+              srcChart: groupName,
+              selection: `${groupName} for a duration of ${groupIndex} day${groupIndex > 0 ? 's' : ''} (${groupSelection.length} nodes)`,
+              nodes: groupSelection
+            })
+          }
+        })
+
+        // Make chart responsive
+        window.addEventListener('resize', function () {
+          myChart.resize()
+        })
+
+        return myChart
+      }
+
+      const filteredDataset = (groupMetrics) => {
+        if (groupMetrics.query === undefined) {
+          return ''
+        } else {
+          return `Overall project data filtered: ${JSON.stringify(groupMetrics.query)}  <br />`
+        }
+      }
+
+      // Function to initialize the dashboard metadata
+      function initializeDashboard() {
+        // Set dashboard title and metadata from the data object
+        document.getElementById('dashboard-title').textContent =
+          groupMetrics.name
+        document.getElementById('dashboard-description').textContent =
+          groupMetrics.description
+
+        if (groupMetrics.query === undefined) {
+          document.getElementById('dashboard-projectfilter').textContent = ''
+        } else {
+          document.getElementById('dashboard-projectfilter').textContent =
+            `Overall project data filtered: ${JSON.stringify(groupMetrics.query)}`
+        }
+
+        document.getElementById('dashboard-metadata').textContent =
+          `Last updated: ${groupMetrics.updatedAt}`
+
+        createTimelineChart('weeklycompletionchart', groupMetrics)
+      }
+
+      // Initialize all charts when DOM is loaded
+      document.addEventListener('DOMContentLoaded', initializeDashboard)
+    </script>
+  </body>
+</html>

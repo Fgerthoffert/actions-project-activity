@@ -218,12 +218,15 @@
         function createColGroup() {
           const colgroup = document.createElement('colgroup')
           const nameCol = document.createElement('col')
-          nameCol.style.width = '25%'
+          nameCol.style.width = '20%'
+          const typeCol = document.createElement('col')
+          typeCol.style.width = '10%'
           const descCol = document.createElement('col')
-          descCol.style.width = '55%'
+          descCol.style.width = '60%'
           const accessCol = document.createElement('col')
-          accessCol.style.width = '20%'
+          accessCol.style.width = '10%'
           colgroup.appendChild(nameCol)
+          colgroup.appendChild(typeCol)
           colgroup.appendChild(descCol)
           colgroup.appendChild(accessCol)
           return colgroup
@@ -254,7 +257,7 @@
           // Create table head
           const thead = document.createElement('thead')
           const headRow = document.createElement('tr')
-          ;['Name', 'Description', 'Access'].forEach((text) => {
+          ;['Name', 'Type', 'Description', 'Access'].forEach((text) => {
             const th = document.createElement('th')
             th.textContent = text
             headRow.appendChild(th)
@@ -272,6 +275,11 @@
             nameCell.textContent = dashboard.name
             row.appendChild(nameCell)
 
+            // Type name cell
+            const typeCell = document.createElement('td')
+            typeCell.textContent = dashboard.type || 'N/A'
+            row.appendChild(typeCell)
+
             // Description cell
             const descCell = document.createElement('td')
             descCell.textContent = dashboard.description
@@ -282,7 +290,7 @@
             const accessLink = document.createElement('a')
             accessLink.href = dashboard.link
             accessLink.className = 'btn'
-            accessLink.textContent = 'View Dashboard'
+            accessLink.textContent = 'View'
             accessCell.appendChild(accessLink)
             row.appendChild(accessCell)
 

@@ -5,6 +5,7 @@ import { loadActionConfig } from './utils/index.js'
 import { getProject } from './data/getProject.js'
 import { fetchData } from './data/index.js'
 import { buildMetrics } from './metrics/index.js'
+import { buildTimelineMetrics } from './timelineMetrics/index.js'
 import { buildViews } from './views/index.js'
 
 import { GitHubProject } from './types/index.js'
@@ -58,11 +59,18 @@ export async function run(): Promise<void> {
       config
     })
 
+    // Create an array containing all metrics across all groups
+    const allTimelineMetrics = await buildTimelineMetrics({
+      nodes: allNodes,
+      config
+    })
+
     // Build the HTML views
     await buildViews({
       inputViewsOutputPath,
       githubProject,
-      groups: allMetrics
+      groups: allMetrics,
+      timeline: allTimelineMetrics
     })
 
     core.info(
