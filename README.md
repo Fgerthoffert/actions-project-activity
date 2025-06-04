@@ -432,7 +432,10 @@ the "In Progress" Status to the "Done" Status.
 
 ```yaml
 timeline:
-  baseUrl: https://MY_SERVER/MY_DATA/
+  remote:
+    baseUrl: https://MY_SERVER/MY_DATA/
+    username: 'USERNAME'
+    password: 'PASSWORD'
   enabled: true
   groups:
     - name: All tickets
@@ -448,7 +451,10 @@ column and breaks this results by issue type (Bugs, Stories, ...).
 
 ```yaml
 timeline:
-  baseUrl: https://MY_SERVER/MY_DATA/
+  remote:
+    baseUrl: https://MY_SERVER/MY_DATA/
+    username: 'USERNAME'
+    password: 'PASSWORD'
   enabled: true
   groups:
     - name: Time spent in the In-Progress state

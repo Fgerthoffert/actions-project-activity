@@ -24,7 +24,6 @@ export const getStatusChange = ({
     // of the right type for the right field
     let startEvent = null
     let endEvent = null
-    console.log(node.title)
 
     // create an array called sorted events, that contains all node.timeline.events sorted by the date field, in descending order. The date is a string with the format "2025-05-28T12:46:32Z"
     const sortedEvents = [...node.timeline.events].sort((a, b) => {

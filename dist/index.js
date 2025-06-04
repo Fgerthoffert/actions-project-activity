@@ -42025,23 +42025,32 @@ const getTimelineItems = async ({ config, deliveryItems, dataCacheDir, devCache 
         deliveryItemWithTimeline = cacheData;
     }
     else if (config.timeline !== undefined) {
-        coreExports.info(`No existing cache found for issues, or caching disabled, fetching from ${config.timeline.baseUrl}...`);
+        coreExports.info(`No existing cache found for issues, or caching disabled, fetching from ${config.timeline.remote.baseUrl}...`);
         for (const issue of deliveryItems) {
-            coreExports.info(`Processing issue: ${issue.title} (ID: ${issue.id})`);
             let issueTimeline = undefined;
+            const issueUrl = `${config.timeline.remote.baseUrl}/${issue.repository.owner.login}/${issue.repository.name}/json/${issue.number}.json`;
+            let error = '';
             try {
-                const issueUrl = `${config.timeline.baseUrl}/${issue.repository.owner.login}/${issue.repository.name}/json/${issue.number}.json`;
-                const response = await fetch(issueUrl);
+                const headers = {};
+                if (config.timeline.remote.username &&
+                    config.timeline.remote.username !== '' &&
+                    config.timeline.remote.password &&
+                    config.timeline.remote.password !== '') {
+                    const credentials = Buffer.from(`${config.timeline.remote.username}:${config.timeline.remote.password}`).toString('base64');
+                    headers['Authorization'] = `Basic ${credentials}`;
+                }
+                const response = await fetch(issueUrl, { headers });
                 if (response.ok) {
                     issueTimeline = await response.json();
                 }
                 else {
-                    coreExports.info(`Failed to fetch timeline for issue ${issue.id}: ${response.statusText} - ${issueUrl}`);
+                    error = ` - Failed to fetch timeline for issue ${response.statusText} - ${issueUrl}`;
                 }
             }
             catch (error) {
                 coreExports.info(`Error fetching timeline for issue ${issue.id}: ${error}`);
             }
+            coreExports.info(`${error === '' ? '✅' : '❌'} Processed issue: ${issue.title} (ID: ${issue.id})${error}`);
             deliveryItemWithTimeline.push({
                 ...issue,
                 timeline: issueTimeline
@@ -42087,7 +42096,7 @@ const fetchData = async ({ inputGithubToken, inputDevCache, config, githubProjec
     // if configured, attempt to retrieve timeline items for all GitHub issues
     if (config.timeline && config.timeline.enabled === true) {
         coreExports.info(`Fetching timeline items for all issues`);
-        githubIssues = await coreExports.group(`⬇️ Fetching Timeline items from ${config.timeline.baseUrl}`, async () => {
+        githubIssues = await coreExports.group(`⬇️ Fetching Timeline items from ${config.timeline.remote.baseUrl}`, async () => {
             const timelineItems = await getTimelineItems({
                 config,
                 deliveryItems: githubIssues,
@@ -48679,7 +48688,6 @@ const getStatusChange = ({ nodes, group }) => {
         // of the right type for the right field
         let startEvent = null;
         let endEvent = null;
-        console.log(node.title);
         // create an array called sorted events, that contains all node.timeline.events sorted by the date field, in descending order. The date is a string with the format "2025-05-28T12:46:32Z"
         const sortedEvents = [...node.timeline.events].sort((a, b) => {
             return new Date(b.date).getTime() - new Date(a.date).getTime();

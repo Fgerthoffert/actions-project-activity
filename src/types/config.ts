@@ -24,7 +24,11 @@ export interface ConfigTimelineGroup {
 }
 
 export interface ConfigTimeline {
-  baseUrl: string
+  remote: {
+    baseUrl: string
+    username: string
+    password: string
+  }
   enabled: boolean
   groups: ConfigTimelineGroup[]
 }

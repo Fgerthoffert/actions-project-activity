@@ -73,7 +73,7 @@ export const fetchData = async ({
   if (config.timeline && config.timeline.enabled === true) {
     core.info(`Fetching timeline items for all issues`)
     githubIssues = await core.group(
-      `⬇️ Fetching Timeline items from ${config.timeline.baseUrl}`,
+      `⬇️ Fetching Timeline items from ${config.timeline.remote.baseUrl}`,
       async () => {
         const timelineItems = await getTimelineItems({
           config,

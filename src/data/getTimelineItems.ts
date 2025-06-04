@@ -35,25 +35,37 @@ export const getTimelineItems = async ({
     deliveryItemWithTimeline = cacheData
   } else if (config.timeline !== undefined) {
     core.info(
-      `No existing cache found for issues, or caching disabled, fetching from ${config.timeline.baseUrl}...`
+      `No existing cache found for issues, or caching disabled, fetching from ${config.timeline.remote.baseUrl}...`
     )
     for (const issue of deliveryItems) {
-      core.info(`Processing issue: ${issue.title} (ID: ${issue.id})`)
-
       let issueTimeline = undefined
+      const issueUrl = `${config.timeline.remote.baseUrl}/${issue.repository.owner.login}/${issue.repository.name}/json/${issue.number}.json`
+      let error: string | undefined = ''
       try {
-        const issueUrl = `${config.timeline.baseUrl}/${issue.repository.owner.login}/${issue.repository.name}/json/${issue.number}.json`
-        const response = await fetch(issueUrl)
+        const headers: Record<string, string> = {}
+        if (
+          config.timeline.remote.username &&
+          config.timeline.remote.username !== '' &&
+          config.timeline.remote.password &&
+          config.timeline.remote.password !== ''
+        ) {
+          const credentials = Buffer.from(
+            `${config.timeline.remote.username}:${config.timeline.remote.password}`
+          ).toString('base64')
+          headers['Authorization'] = `Basic ${credentials}`
+        }
+        const response = await fetch(issueUrl, { headers })
         if (response.ok) {
           issueTimeline = await response.json()
         } else {
-          core.info(
-            `Failed to fetch timeline for issue ${issue.id}: ${response.statusText} - ${issueUrl}`
-          )
+          error = ` - Failed to fetch timeline for issue ${response.statusText} - ${issueUrl}`
         }
       } catch (error) {
         core.info(`Error fetching timeline for issue ${issue.id}: ${error}`)
       }
+      core.info(
+        `${error === '' ? '✅' : '❌'} Processed issue: ${issue.title} (ID: ${issue.id})${error}`
+      )
 
       deliveryItemWithTimeline.push({
         ...issue,
