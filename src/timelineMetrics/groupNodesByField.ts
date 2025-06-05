@@ -3,7 +3,11 @@ import * as core from '@actions/core'
 import { Aggregator } from 'mingo/aggregator'
 import 'mingo/init/system'
 
-import { DeliveryItem, TimelineSubGroup } from '../types/index.js'
+import {
+  DeliveryItem,
+  TimelineSubGroup,
+  ConfigTimelineGroup
+} from '../types/index.js'
 
 import { getMetrics } from './getMetrics.js'
 
@@ -12,7 +16,7 @@ export const groupNodesByField = ({
   group
 }: {
   nodes: DeliveryItem[]
-  group: any
+  group: ConfigTimelineGroup
 }): TimelineSubGroup[] => {
   const groups: TimelineSubGroup[] = []
   if (group.groupByField === undefined || group.groupByField === '') {

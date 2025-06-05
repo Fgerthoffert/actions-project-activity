@@ -17,7 +17,7 @@ export interface TimelineMetrics {
 
 export interface TimelineSubGroup {
   description: string
-  metrics: TimelineMetrics
+  metrics?: TimelineMetrics
   name: string
   nodes: DeliveryItem[]
   query?: AnyObject
@@ -26,12 +26,13 @@ export interface TimelineSubGroup {
 export interface TimelineGroup {
   id: string
   name: string
+  category?: string
   description: string
   field: string
   updatedAt: string
   nodes: DeliveryItem[]
   groups: TimelineSubGroup[]
-  metrics: TimelineMetrics
+  metrics?: TimelineMetrics
 }
 
 export interface MetricGroup {

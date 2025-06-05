@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import path from 'path'
 
-import { MetricGroup, GitHubProject } from '../types/index.js'
+import { MetricGroup, GitHubProject, TimelineGroup } from '../types/index.js'
 
 import { getOutputDirectory } from './getOutputDirectory.js'
 import { writeHTMLTemplate } from './writeHTMLTemplate.js'
@@ -21,7 +21,7 @@ export const buildViews = async ({
   inputViewsOutputPath: string
   githubProject: GitHubProject
   groups: MetricGroup[]
-  timeline: any
+  timeline: TimelineGroup[]
 }): Promise<null> => {
   const outputDir = await getOutputDirectory(inputViewsOutputPath)
 

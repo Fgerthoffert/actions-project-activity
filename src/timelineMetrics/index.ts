@@ -16,7 +16,7 @@ export const buildTimelineMetrics = async ({
 }: {
   nodes: DeliveryItem[]
   config: Config
-}): Promise<any[]> => {
+}): Promise<TimelineGroup[]> => {
   // Begin by filtering down all of the nodes that do not contain timeline data
 
   nodes = filterNodesWithoutEvents({ nodes })

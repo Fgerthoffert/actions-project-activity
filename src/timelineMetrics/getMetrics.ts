@@ -1,4 +1,4 @@
-import { DeliveryItem } from '../types/index.js'
+import { DeliveryItem, TimelineMetrics } from '../types/index.js'
 
 const median = (arr: number[]) => {
   if (arr.length === 0) return 0
@@ -9,16 +9,24 @@ const median = (arr: number[]) => {
     : (sorted[mid - 1] + sorted[mid]) / 2
 }
 
-export const getMetrics = ({ nodes }: { nodes: DeliveryItem[] }): any => {
-  const groupDatapoints = nodes.map(
-    (node: any) => node.timelineMetrics.duration
-  )
+export const getMetrics = ({
+  nodes
+}: {
+  nodes: DeliveryItem[]
+}): TimelineMetrics | undefined => {
+  const groupDatapoints = nodes
+    .map((node: DeliveryItem) => node.timelineMetrics?.duration)
+    .filter((duration): duration is number => duration !== undefined)
 
-  // Calculate median
+  if (groupDatapoints.length === 0) {
+    return undefined
+  }
+
+  // Sort the datapoints
   const sortedDatapoints = [...groupDatapoints].sort((a, b) => a - b)
 
   // Keep 90% of the lowest values
-  let cutoffIndex = Math.floor(sortedDatapoints.length * 0.9)
+  const cutoffIndex = Math.floor(sortedDatapoints.length * 0.9)
   const lowest90Percent = sortedDatapoints.slice(0, cutoffIndex)
 
   return {

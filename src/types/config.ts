@@ -16,7 +16,7 @@ export interface ConfigInitiative {
 export interface ConfigTimelineGroup {
   name: string
   description: string
-  fields: string[]
+  field: string
   valueFrom: string
   valueTo?: string
   query: AnyObject

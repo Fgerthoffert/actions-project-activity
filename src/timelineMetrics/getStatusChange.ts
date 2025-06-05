@@ -1,13 +1,13 @@
 import * as core from '@actions/core'
 
-import { DeliveryItem } from '../types/index.js'
+import { DeliveryItem, ConfigTimelineGroup } from '../types/index.js'
 
 export const getStatusChange = ({
   nodes,
   group
 }: {
   nodes: DeliveryItem[]
-  group: any
+  group: ConfigTimelineGroup
 }): DeliveryItem[] => {
   const eliligibleNodes: DeliveryItem[] = []
 
