@@ -48732,7 +48732,7 @@ const getStatusChange = ({ nodes, group }) => {
                         const startDate = new Date(startEvent.date);
                         const endDate = new Date(endEvent.date);
                         let businessDays = 0;
-                        let currentDate = new Date(startDate.getTime());
+                        const currentDate = new Date(startDate.getTime());
                         while (currentDate <= endDate) {
                             const dayOfWeek = currentDate.getDay();
                             // Only count weekdays (Monday-Friday)
