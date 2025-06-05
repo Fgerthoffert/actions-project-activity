@@ -362,12 +362,13 @@
             group
           )
           if (group && group.nodes.length > 0) {
+            const numberOfDays = params.data[0]
             const groupSelection = group.nodes.filter(
-              (node) => node.timelineMetrics.duration === groupIndex
+              (node) => node.timelineMetrics.duration === numberOfDays
             )
             updateTable({
               srcChart: groupName,
-              selection: `${groupName} for a duration of ${groupIndex} day${groupIndex > 0 ? 's' : ''} (${groupSelection.length} nodes)`,
+              selection: `${groupName} for a duration of ${numberOfDays} day${numberOfDays > 0 ? 's' : ''} (${groupSelection.length} nodes)`,
               nodes: groupSelection
             })
           }
