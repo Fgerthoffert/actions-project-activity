@@ -48762,11 +48762,16 @@ const median = (arr) => {
         : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 const getMetrics = ({ nodes }) => {
-    const groupDatapoints = nodes.map((node) => node.timelineMetrics.duration);
-    // Calculate median
+    const groupDatapoints = nodes
+        .map((node) => node.timelineMetrics?.duration)
+        .filter((duration) => duration !== undefined);
+    if (groupDatapoints.length === 0) {
+        return undefined;
+    }
+    // Sort the datapoints
     const sortedDatapoints = [...groupDatapoints].sort((a, b) => a - b);
     // Keep 90% of the lowest values
-    let cutoffIndex = Math.floor(sortedDatapoints.length * 0.9);
+    const cutoffIndex = Math.floor(sortedDatapoints.length * 0.9);
     const lowest90Percent = sortedDatapoints.slice(0, cutoffIndex);
     return {
         datapoints: groupDatapoints,
