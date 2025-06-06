@@ -42,7 +42,7 @@ export const populateCalendar = (
         points: {
           ...week.metrics.points,
           count: weekNodes
-            .map((i: any) => i.points)
+            .map((i: any) => (i.points === null ? 0 : i.points))
             .reduce((acc: any, count: any) => acc + count, 0)
         }
       }
