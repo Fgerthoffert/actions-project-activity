@@ -51,7 +51,7 @@ export interface DeliveryItem {
   milestone: GitHubMilestone | null
   initiative: DeliveryInitiative | null
   number: number
-  points: number
+  points: number | null
   project: {
     [key: string]: string
   }

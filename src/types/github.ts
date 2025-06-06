@@ -128,7 +128,7 @@ export interface GitHubPullRequest extends GitHubPullRequestBase {
 }
 
 export interface GitHubPullRequestAugmented extends GitHubPullRequest {
-  points?: number
+  points?: number | null
   project?: {
     [key: string]: string
   }

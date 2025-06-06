@@ -44,7 +44,7 @@ export const augmentNodes = ({
     const initiative = issuesWithInitiatives.find(
       (issue) => issue.id === node.id
     )
-    let points = 0
+    let points = null
     let projectFields = {}
     if (card) {
       // Projects fields are not necessarily easy to parse
