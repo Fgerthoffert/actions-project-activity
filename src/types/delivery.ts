@@ -1,5 +1,36 @@
 import { GitHubMilestone, GitHubRepository } from './github.js'
 
+// The timeline object collected by GitHub
+interface DeliveryTimelineEvent {
+  id: string
+  action: string
+  date: string
+  change?: {
+    field_value?: {
+      field_name: string
+      from?: {
+        name: string
+      }
+      to?: {
+        name: string
+      }
+    }
+  }
+}
+
+export interface DeliveryTimeline {
+  id: string
+  events: DeliveryTimelineEvent[]
+}
+
+interface DeliveryTimelineMetrics {
+  duration: number
+  endDate: string
+  valueTo: string
+  startDate: string
+  valueFrom: string
+}
+
 interface DeliveryInitiative {
   id: string
   name: string
@@ -29,4 +60,6 @@ export interface DeliveryItem {
   title: string
   type: string
   url: string
+  timeline?: DeliveryTimeline
+  timelineMetrics?: DeliveryTimelineMetrics
 }

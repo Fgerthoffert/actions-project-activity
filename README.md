@@ -393,6 +393,99 @@ the execution date of the action (today).
 - @today-2w: 2 weeks ago
 - ...
 
+### Timeline / MTTR
+
+This is a particularly advanced use case, unlikely to be directly usable in your
+situation. This action has the ability to calculate the time an issue's project
+field had a particular value or the time it took for that issue to transition
+from one value to another one.
+
+Concretely, it makes it possible to calculate an issue MTTR, time it took for an
+issue to be closed from the time it was picked up.
+
+The data can be groupped by a particular field, making it possible to compare
+MTTR between ticket types, MTTR between different story point values, ...
+
+<p align="center">
+  <img alt="Delivery Dashboard" src="docs/mttr.png" width="800" />
+</p>
+
+The data needed to build such charts is not available via GitHub GraphQL API (or
+via any other GitHub APIs),
+[more details here](https://github.com/orgs/community/discussions/49602).
+
+Luckily this data is available via GitHub Webhook events, so if you are able to
+build a listener that will collect these, and save them in a location reachable
+by the action, then the necessary data can be fecthed and MTTR charts generated.
+
+Today, this can be achieved via ZenCrepes tooling, in particular
+[zqueue (a webhook handler)](https://github.com/zencrepes/zqueue) and
+[zindexer](https://github.com/zencrepes/zindexer/tree/master)
+[utils:github-project-cards command](https://github.com/zencrepes/zindexer/blob/master/src/commands/utils/github-project-cards.ts).
+Note that this is sparsely documented.
+
+#### Sample config
+
+The following configuration will fetch data from baseUrl, and will generate one
+dashboard tracking how long it took (in business days) for a ticket to move from
+the "In Progress" Status to the "Done" Status.
+
+```yaml
+timeline:
+  remote:
+    baseUrl: https://MY_SERVER/MY_DATA/
+    username: 'USERNAME'
+    password: 'PASSWORD'
+  enabled: true
+  groups:
+    - name: All tickets
+      description: All tickets from In Progress to Done
+      field: 'Status'
+      valueFrom: 'In Progress'
+      valueTo: 'Done'
+      query: {}
+```
+
+This other config sample, track how long a ticket stays in the "In Progress"
+column and breaks this results by issue type (Bugs, Stories, ...).
+
+```yaml
+timeline:
+  remote:
+    baseUrl: https://MY_SERVER/MY_DATA/
+    username: 'USERNAME'
+    password: 'PASSWORD'
+  enabled: true
+  groups:
+    - name: Time spent in the In-Progress state
+      description:
+      Collect for each type of issue, the time spent in the In-Progress state.
+      field: 'Status'
+      valueFrom: 'In Progress'
+      groupByField: issueType.name
+      query: {}
+```
+
+#### Config options
+
+| Option         | Type   | Description                                                                     |
+| -------------- | ------ | ------------------------------------------------------------------------------- |
+| `name`         | string | Name of the group/dashboard.                                                    |
+| `description`  | string | Description of what this group measures.                                        |
+| `field`        | string | The project field to track transitions for (e.g., `Status`).                    |
+| `valueFrom`    | string | The value in the field to start measuring from (e.g., `In Progress`).           |
+| `valueTo`      | string | _(Optional)_ The value in the field to stop measuring at (e.g., `Done`).        |
+| `groupByField` | string | _(Optional)_ Field to group results by (e.g., `issueType.name`).                |
+| `query`        | object | _(Optional)_ Mingo query to filter which issues/PRs are included in this group. |
+
+**Notes:**
+
+- If `valueTo` is omitted, the time spent in the `valueFrom` state is measured
+  until the next transition.
+- `groupByField` allows you to break down the results by a specific field (e.g.,
+  issue type).
+- `query` can be used to further filter the issues included in the calculation.
+
 # Querying
 
 Querying is performed on an in-memory array of nodes using

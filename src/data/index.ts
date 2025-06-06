@@ -12,6 +12,7 @@ import { getProjectCards } from './getProjectCards.js'
 import { getIssues } from './getIssues.js'
 import { getPullRequests } from './getPullRequests.js'
 import { getInitiatives } from './getInitiatives.js'
+import getTimelineItems from './getTimelineItems.js'
 
 export const fetchData = async ({
   inputGithubToken,
@@ -52,7 +53,7 @@ export const fetchData = async ({
     config
   })
 
-  const githubIssues = await core.group(
+  let githubIssues = await core.group(
     `⬇️ Fetching Issues from GitHub`,
     async () => {
       const githubIssues = await getIssues({
@@ -67,6 +68,24 @@ export const fetchData = async ({
       return githubIssues
     }
   )
+
+  // if configured, attempt to retrieve timeline items for all GitHub issues
+  if (config.timeline && config.timeline.enabled === true) {
+    core.info(`Fetching timeline items for all issues`)
+    githubIssues = await core.group(
+      `⬇️ Fetching Timeline items from ${config.timeline.remote.baseUrl}`,
+      async () => {
+        const timelineItems = await getTimelineItems({
+          config,
+          deliveryItems: githubIssues,
+          dataCacheDir,
+          devCache: inputDevCache
+        })
+        core.info(`Successfully retrieved ${githubIssues.length} Issues`)
+        return timelineItems
+      }
+    )
+  }
 
   const githubPullRequests = await core.group(
     `⬇️ Fetching Pull Requests from GitHub`,
