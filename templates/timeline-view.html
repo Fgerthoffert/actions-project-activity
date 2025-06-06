@@ -220,6 +220,48 @@
         const series = []
 
         const nbDays = data.nodes.map((item) => item.timelineMetrics.duration)
+        console.log('Days present in the dataset:', nbDays)
+
+        const daysPerGroup = []
+        for (const group of data.groups) {
+          if (group.nodes.length > 0) {
+            const nbDays = group.nodes.map(
+              (item) => item.timelineMetrics.duration
+            )
+            const daySizeMap = nbDays.reduce((acc, day) => {
+              acc[day] = (acc[day] || 0) + 1
+              return acc
+            }, {})
+            const daySizeArray = Object.entries(daySizeMap).forEach(
+              ([id, size]) => {
+                daysPerGroup.push({
+                  name: group.name,
+                  day: Number(id),
+                  size
+                })
+              }
+            )
+          }
+        }
+        console.log('Days present in the dataset per group:', daysPerGroup)
+
+        const getSymbolSize = (dataItem, daysPerGroup) => {
+          // Symbol size should not be taller than the height of the line
+          const minSize = 5
+          const maxSize = 40
+          const minCount = Math.min(...daysPerGroup.map((item) => item.size))
+          const maxCount = Math.max(...daysPerGroup.map((item) => item.size))
+
+          const symbolCount = dataItem[2]
+          if (symbolCount === 0) return 0
+
+          if (minCount === maxCount) return (minSize + maxSize) / 2
+          // sqrt scaling, normalized
+          const scale =
+            (Math.sqrt(symbolCount) - Math.sqrt(minCount)) /
+            (Math.sqrt(maxCount) - Math.sqrt(minCount))
+          return minSize + scale * (maxSize - minSize)
+        }
 
         const groups = data.groups.length > 0 ? data.groups : [data]
 
@@ -267,6 +309,9 @@
           series.push({
             name: group.name, // Add name for legend
             symbolSize: function (dataItem) {
+              return getSymbolSize(dataItem, daysPerGroup)
+              // Symbol size should not be taller than the height of the line
+              // this is currently not covered, need to implement a ratio of size vs. the dataset
               return dataItem[2] === 0 ? 0 : 5 + dataItem[2] * 5
             },
             data: allDays.map((day) => {
