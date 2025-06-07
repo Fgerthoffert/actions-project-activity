@@ -41427,7 +41427,7 @@ const getProjectCardsGraphQL = `
                   closedAt
                 }
               }
-              fieldValues(first: 10) {
+              fieldValues(first: 20) {
                 nodes {
                   ... on ProjectV2ItemFieldDateValue {
                     __typename
