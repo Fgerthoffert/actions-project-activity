@@ -4,9 +4,8 @@ jest.unstable_mockModule('@actions/core', () => ({
   info: jest.fn()
 }))
 
-const { getStatusChange } = await import(
-  '../src/timelineMetrics/getStatusChange.js'
-)
+const { getStatusChange } =
+  await import('../src/timelineMetrics/getStatusChange.js')
 import { DeliveryItem, ConfigTimelineGroup } from '../src/types/index.js'
 
 const makeNode = (overrides: Partial<DeliveryItem>): DeliveryItem => ({
