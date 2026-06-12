@@ -4,9 +4,8 @@ jest.unstable_mockModule('@actions/core', () => ({
   info: jest.fn()
 }))
 
-const { filterNodesWithoutEvents } = await import(
-  '../src/timelineMetrics/filterNodesWithoutEvents.js'
-)
+const { filterNodesWithoutEvents } =
+  await import('../src/timelineMetrics/filterNodesWithoutEvents.js')
 import { DeliveryItem } from '../src/types/index.js'
 
 const makeNode = (overrides: Partial<DeliveryItem>): DeliveryItem => ({

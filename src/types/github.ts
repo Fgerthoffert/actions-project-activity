@@ -158,8 +158,7 @@ interface GitHubProjectV2ItemFieldNumberValue extends GitHubBaseFieldValue {
   number: number
 }
 
-interface GitHubProjectV2ItemFieldSingleSelectValue
-  extends GitHubBaseFieldValue {
+interface GitHubProjectV2ItemFieldSingleSelectValue extends GitHubBaseFieldValue {
   __typename: 'ProjectV2ItemFieldSingleSelectValue'
   name: string
 }
