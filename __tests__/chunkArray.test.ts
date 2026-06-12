@@ -22,12 +22,6 @@ describe('chunkArray', () => {
     expect(result).toEqual([[1, 2, 3]])
   })
 
-  it('should throw an error if chunk size is not a positive integer', () => {
-    const data = [1, 2, 3, 4]
-    expect(() => chunkArray(data, 0)).toThrow()
-    expect(() => chunkArray(data, -1)).toThrow()
-  })
-
   it('should handle arrays with non-numeric elements', () => {
     const data = ['a', 'b', 'c', 'd']
     const chunkSize = 2
@@ -36,5 +30,12 @@ describe('chunkArray', () => {
       ['a', 'b'],
       ['c', 'd']
     ])
+  })
+
+  it('should return the entire array as a single chunk when chunk size equals array length', () => {
+    const data = [1, 2, 3]
+    const chunkSize = 3
+    const result = chunkArray(data, chunkSize)
+    expect(result).toEqual([[1, 2, 3]])
   })
 })

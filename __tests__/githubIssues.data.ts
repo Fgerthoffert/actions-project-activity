@@ -9,6 +9,7 @@ export const gitHubTestIssues: GitHubIssue[] = [
     closedAt: '2025-04-30T09:36:18Z',
     updatedAt: '2025-04-30T09:36:18Z',
     mergedAt: '2025-04-30T09:36:18Z',
+    stateReason: null,
     url: 'https://github.com/owner/repo/issues/1',
     repository: {
       name: 'repo1',
@@ -17,7 +18,9 @@ export const gitHubTestIssues: GitHubIssue[] = [
     },
     milestone: { state: 'OPEN', title: 'Milestone 1' },
     labels: { nodes: [] },
-    projectsV2: { nodes: [{ title: 'Project 1' }] }
+    projectsV2: { nodes: [{ title: 'Project 1' }] },
+    issueType: { name: 'Bug' },
+    subIssues: { totalCount: 0, nodes: [] }
   },
   {
     __typename: 'Issue',
@@ -27,6 +30,7 @@ export const gitHubTestIssues: GitHubIssue[] = [
     closedAt: '2025-04-30T12:06:42Z',
     updatedAt: '2025-04-30T12:06:42Z',
     mergedAt: '2025-04-30T12:06:42Z',
+    stateReason: null,
     url: 'https://github.com/owner/repo/issues/2',
     repository: {
       name: 'repo2',
@@ -35,7 +39,9 @@ export const gitHubTestIssues: GitHubIssue[] = [
     },
     milestone: { state: 'OPEN', title: 'Milestone 2' },
     labels: { nodes: [] },
-    projectsV2: { nodes: [{ title: 'Project 1' }] }
+    projectsV2: { nodes: [{ title: 'Project 1' }] },
+    issueType: { name: 'Feature' },
+    subIssues: { totalCount: 0, nodes: [] }
   },
   {
     __typename: 'Issue',
@@ -45,6 +51,7 @@ export const gitHubTestIssues: GitHubIssue[] = [
     closedAt: '2025-04-30T14:00:41Z',
     updatedAt: '2025-04-30T14:00:41Z',
     mergedAt: '2025-04-30T14:00:41Z',
+    stateReason: null,
     url: 'https://github.com/owner/repo/issues/3',
     repository: {
       name: 'repo3',
@@ -53,7 +60,9 @@ export const gitHubTestIssues: GitHubIssue[] = [
     },
     milestone: { state: 'OPEN', title: 'Milestone 3' },
     labels: { nodes: [] },
-    projectsV2: { nodes: [{ title: 'Project 1' }] }
+    projectsV2: { nodes: [{ title: 'Project 1' }] },
+    issueType: { name: 'Bug' },
+    subIssues: { totalCount: 0, nodes: [] }
   },
   {
     __typename: 'Issue',
@@ -63,6 +72,7 @@ export const gitHubTestIssues: GitHubIssue[] = [
     closedAt: '2025-04-30T15:28:37Z',
     updatedAt: '2025-04-30T15:28:37Z',
     mergedAt: '2025-04-30T15:28:37Z',
+    stateReason: null,
     url: 'https://github.com/owner/repo/issues/4',
     repository: {
       name: 'repo4',
@@ -71,7 +81,9 @@ export const gitHubTestIssues: GitHubIssue[] = [
     },
     milestone: { state: 'OPEN', title: 'Milestone 4' },
     labels: { nodes: [] },
-    projectsV2: { nodes: [{ title: 'Project 1' }] }
+    projectsV2: { nodes: [{ title: 'Project 1' }] },
+    issueType: { name: 'Feature' },
+    subIssues: { totalCount: 0, nodes: [] }
   },
   {
     __typename: 'Issue',
@@ -81,6 +93,7 @@ export const gitHubTestIssues: GitHubIssue[] = [
     closedAt: '2025-04-29T13:07:31Z',
     updatedAt: '2025-04-29T13:07:31Z',
     mergedAt: '2025-04-29T13:07:31Z',
+    stateReason: null,
     url: 'https://github.com/owner/repo/issues/5',
     repository: {
       name: 'repo5',
@@ -89,7 +102,9 @@ export const gitHubTestIssues: GitHubIssue[] = [
     },
     milestone: { state: 'OPEN', title: 'Milestone 5' },
     labels: { nodes: [] },
-    projectsV2: { nodes: [{ title: 'Project 1' }] }
+    projectsV2: { nodes: [{ title: 'Project 1' }] },
+    issueType: { name: 'Bug' },
+    subIssues: { totalCount: 0, nodes: [] }
   },
   {
     __typename: 'Issue',
@@ -99,6 +114,7 @@ export const gitHubTestIssues: GitHubIssue[] = [
     closedAt: '2025-04-28T06:30:55Z',
     updatedAt: '2025-04-28T06:30:55Z',
     mergedAt: '2025-04-28T06:30:55Z',
+    stateReason: null,
     url: 'https://github.com/owner/repo/issues/6',
     repository: {
       name: 'repo6',
@@ -107,7 +123,9 @@ export const gitHubTestIssues: GitHubIssue[] = [
     },
     milestone: { state: 'OPEN', title: 'Milestone 6' },
     labels: { nodes: [{ name: 'label1' }] },
-    projectsV2: { nodes: [{ title: 'Project 1' }] }
+    projectsV2: { nodes: [{ title: 'Project 1' }] },
+    issueType: { name: 'Bug' },
+    subIssues: { totalCount: 0, nodes: [] }
   },
   {
     __typename: 'Issue',
@@ -117,6 +135,7 @@ export const gitHubTestIssues: GitHubIssue[] = [
     closedAt: '2025-04-28T14:48:30Z',
     updatedAt: '2025-04-28T14:48:30Z',
     mergedAt: '2025-04-28T14:48:30Z',
+    stateReason: null,
     url: 'https://github.com/owner/repo/issues/7',
     repository: {
       name: 'repo7',
@@ -125,7 +144,9 @@ export const gitHubTestIssues: GitHubIssue[] = [
     },
     milestone: { state: 'OPEN', title: 'Milestone 7' },
     labels: { nodes: [] },
-    projectsV2: { nodes: [{ title: 'Project 1' }, { title: 'Project 2' }] }
+    projectsV2: { nodes: [{ title: 'Project 1' }, { title: 'Project 2' }] },
+    issueType: { name: 'Feature' },
+    subIssues: { totalCount: 0, nodes: [] }
   },
   {
     __typename: 'Issue',
@@ -135,6 +156,7 @@ export const gitHubTestIssues: GitHubIssue[] = [
     closedAt: '2025-04-28T14:47:55Z',
     updatedAt: '2025-04-28T14:47:55Z',
     mergedAt: '2025-04-28T14:47:55Z',
+    stateReason: null,
     url: 'https://github.com/owner/repo/issues/8',
     repository: {
       name: 'repo8',
@@ -143,6 +165,8 @@ export const gitHubTestIssues: GitHubIssue[] = [
     },
     milestone: { state: 'OPEN', title: 'Milestone 8' },
     labels: { nodes: [{ name: 'label2' }] },
-    projectsV2: { nodes: [{ title: 'Project 1' }] }
+    projectsV2: { nodes: [{ title: 'Project 1' }] },
+    issueType: { name: 'Bug' },
+    subIssues: { totalCount: 0, nodes: [] }
   }
 ]
