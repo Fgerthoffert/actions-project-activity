@@ -14,7 +14,11 @@ const makeNode = (duration: number): DeliveryItem => ({
   projectsV2: [],
   url: '',
   title: `Node with duration ${duration}`,
-  repository: { name: 'repo', url: 'https://github.com/repo', owner: { login: 'owner' } },
+  repository: {
+    name: 'repo',
+    url: 'https://github.com/repo',
+    owner: { login: 'owner' }
+  },
   type: 'issue',
   timelineMetrics: {
     duration,
@@ -27,22 +31,28 @@ const makeNode = (duration: number): DeliveryItem => ({
 
 describe('getMetrics', () => {
   it('should return undefined when nodes have no timelineMetrics', () => {
-    const nodes: DeliveryItem[] = [{
-      id: '1',
-      labels: [],
-      mergedAt: null,
-      milestone: null,
-      initiative: null,
-      closedAt: null,
-      number: 1,
-      points: null,
-      project: {},
-      projectsV2: [],
-      url: '',
-      title: 'No metrics',
-      repository: { name: 'repo', url: 'https://github.com/repo', owner: { login: 'owner' } },
-      type: 'issue'
-    }]
+    const nodes: DeliveryItem[] = [
+      {
+        id: '1',
+        labels: [],
+        mergedAt: null,
+        milestone: null,
+        initiative: null,
+        closedAt: null,
+        number: 1,
+        points: null,
+        project: {},
+        projectsV2: [],
+        url: '',
+        title: 'No metrics',
+        repository: {
+          name: 'repo',
+          url: 'https://github.com/repo',
+          owner: { login: 'owner' }
+        },
+        type: 'issue'
+      }
+    ]
 
     const result = getMetrics({ nodes })
 
@@ -90,8 +100,16 @@ describe('getMetrics', () => {
   it('should calculate l90 metrics (lowest 90%)', () => {
     // 10 nodes so 90% = 9 lowest values
     const nodes = [
-      makeNode(1), makeNode(2), makeNode(3), makeNode(4), makeNode(5),
-      makeNode(6), makeNode(7), makeNode(8), makeNode(9), makeNode(100)
+      makeNode(1),
+      makeNode(2),
+      makeNode(3),
+      makeNode(4),
+      makeNode(5),
+      makeNode(6),
+      makeNode(7),
+      makeNode(8),
+      makeNode(9),
+      makeNode(100)
     ]
 
     const result = getMetrics({ nodes })

@@ -16,7 +16,11 @@ const makeNode = (overrides: Partial<DeliveryItem>): DeliveryItem => ({
   projectsV2: [],
   url: '',
   title: 'Test node',
-  repository: { name: 'repo', url: 'https://github.com/repo', owner: { login: 'owner' } },
+  repository: {
+    name: 'repo',
+    url: 'https://github.com/repo',
+    owner: { login: 'owner' }
+  },
   type: 'issue',
   ...overrides
 })
@@ -57,9 +61,7 @@ describe('populateCalendar', () => {
       makeNode({ id: '1', closedAt: null, points: 2 })
     ]
 
-    const calendar: MetricWeek[] = [
-      makeWeek('2023-10-02T00:00:00Z')
-    ]
+    const calendar: MetricWeek[] = [makeWeek('2023-10-02T00:00:00Z')]
 
     const result = populateCalendar(nodes, calendar)
 
@@ -74,9 +76,7 @@ describe('populateCalendar', () => {
       makeNode({ id: '2', closedAt: '2023-10-04T10:00:00Z', points: 5 })
     ]
 
-    const calendar: MetricWeek[] = [
-      makeWeek('2023-10-02T00:00:00Z')
-    ]
+    const calendar: MetricWeek[] = [makeWeek('2023-10-02T00:00:00Z')]
 
     const result = populateCalendar(nodes, calendar)
 
@@ -86,9 +86,7 @@ describe('populateCalendar', () => {
   })
 
   it('should return empty calendar when no nodes provided', () => {
-    const calendar: MetricWeek[] = [
-      makeWeek('2023-10-02T00:00:00Z')
-    ]
+    const calendar: MetricWeek[] = [makeWeek('2023-10-02T00:00:00Z')]
 
     const result = populateCalendar([], calendar)
 

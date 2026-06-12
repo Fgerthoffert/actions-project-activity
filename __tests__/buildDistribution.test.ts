@@ -1,7 +1,11 @@
 import { buildDistribution } from '../src/metrics/buildDistribution.js'
 import { MetricWeek, MetricStream } from '../src/types/index.js'
 
-const makeWeek = (firstDay: Date, nodesCount: number, pointsCount: number): MetricWeek => ({
+const makeWeek = (
+  firstDay: Date,
+  nodesCount: number,
+  pointsCount: number
+): MetricWeek => ({
   firstDay,
   nodes: [],
   metrics: {
@@ -29,10 +33,7 @@ describe('buildDistribution', () => {
     ]
 
     const streams: MetricStream[] = [
-      makeStream([
-        makeWeek(week1Date, 3, 15),
-        makeWeek(week2Date, 8, 40)
-      ])
+      makeStream([makeWeek(week1Date, 3, 15), makeWeek(week2Date, 8, 40)])
     ]
 
     const result = buildDistribution(allNodesWeeks, streams)
@@ -49,9 +50,7 @@ describe('buildDistribution', () => {
   it('should handle multiple streams', () => {
     const weekDate = new Date('2023-10-02')
 
-    const allNodesWeeks: MetricWeek[] = [
-      makeWeek(weekDate, 10, 100)
-    ]
+    const allNodesWeeks: MetricWeek[] = [makeWeek(weekDate, 10, 100)]
 
     const streams: MetricStream[] = [
       makeStream([makeWeek(weekDate, 3, 30)]),
@@ -107,13 +106,9 @@ describe('buildDistribution', () => {
   it('should round distribution to 2 decimal places', () => {
     const weekDate = new Date('2023-10-02')
 
-    const allNodesWeeks: MetricWeek[] = [
-      makeWeek(weekDate, 3, 3)
-    ]
+    const allNodesWeeks: MetricWeek[] = [makeWeek(weekDate, 3, 3)]
 
-    const streams: MetricStream[] = [
-      makeStream([makeWeek(weekDate, 1, 1)])
-    ]
+    const streams: MetricStream[] = [makeStream([makeWeek(weekDate, 1, 1)])]
 
     const result = buildDistribution(allNodesWeeks, streams)
 

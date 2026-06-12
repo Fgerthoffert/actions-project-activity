@@ -22,7 +22,11 @@ const makeNode = (overrides: Partial<DeliveryItem>): DeliveryItem => ({
   projectsV2: [],
   url: '',
   title: 'Test node',
-  repository: { name: 'repo', url: 'https://github.com/repo', owner: { login: 'owner' } },
+  repository: {
+    name: 'repo',
+    url: 'https://github.com/repo',
+    owner: { login: 'owner' }
+  },
   type: 'issue',
   ...overrides
 })
