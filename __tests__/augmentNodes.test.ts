@@ -6,54 +6,60 @@ import { gitHubTestProjectCards } from './githubProjectCards.data.js'
 
 describe('augmentNodes', () => {
   it('should align mergedAt date to closedAt for pull requests', () => {
-    const pointsField = 'Points'
+    const pointsField = 'Story Points'
 
-    const result = augmentNodes(
-      gitHubTestPullRequests,
-      gitHubTestProjectCards,
+    const result = augmentNodes({
+      nodes: gitHubTestPullRequests,
+      githubProjectCards: gitHubTestProjectCards,
       pointsField
-    )
+    })
 
-    expect(result[0].closedAt).toBe('2023-01-01')
+    // PR_1 has mergedAt = '2025-04-18T14:57:10Z', so closedAt should be aligned
+    expect(result[0].closedAt).toBe('2025-04-18T14:57:10Z')
   })
 
   it('should augment nodes with project fields and points', () => {
-    const pointsField = 'Points'
+    const pointsField = 'Story Points'
 
-    const result = augmentNodes(
-      gitHubTestIssues,
-      gitHubTestProjectCards,
+    const result = augmentNodes({
+      nodes: gitHubTestPullRequests,
+      githubProjectCards: gitHubTestProjectCards,
       pointsField
-    )
+    })
 
-    expect(result[0].project?.Priority).toBe('High')
-    expect(result[0].points).toBe(5)
-    expect(result[0].labels).toEqual(['bug'])
-    expect(result[0].projectsV2).toEqual(['Project 1'])
+    // PR_1 matches PROJECT_CARD_6 which has Story Points = 2
+    expect(result[0].project?.Priority).toBe('Now')
+    expect(result[0].points).toBe(2)
+    expect(result[0].labels).toEqual(['Area:Tech'])
+    expect(result[0].projectsV2).toEqual(['Team A'])
   })
 
-  it('should return nodes unchanged if no matching project card is found', () => {
-    const pointsField = 'Points'
+  it('should return nodes with empty project when no matching card is found', () => {
+    const pointsField = 'Story Points'
 
-    const result = augmentNodes(
-      gitHubTestIssues,
-      gitHubTestProjectCards,
+    const result = augmentNodes({
+      nodes: gitHubTestIssues,
+      githubProjectCards: [],
       pointsField
-    )
-
-    expect(result[0]).toEqual(gitHubTestIssues[0])
-  })
-
-  it('should handle nodes with empty or undefined project fields gracefully', () => {
-    const pointsField = 'Points'
-
-    const result = augmentNodes(
-      gitHubTestIssues,
-      gitHubTestProjectCards,
-      pointsField
-    )
+    })
 
     expect(result[0].project).toEqual({})
-    expect(result[0].points).toBe(0)
+    expect(result[0].points).toBeNull()
+  })
+
+  it('should handle nodes with project fields but no points field', () => {
+    const pointsField = 'Points'
+
+    const result = augmentNodes({
+      nodes: gitHubTestIssues,
+      githubProjectCards: gitHubTestProjectCards,
+      pointsField
+    })
+
+    // I_1 matches PROJECT_CARD_1 which has Priority='High' but no 'Points' field
+    expect(result[0].project?.Priority).toBe('High')
+    expect(result[0].points).toBeNull()
+    expect(result[0].labels).toEqual([])
+    expect(result[0].projectsV2).toEqual(['Project 1'])
   })
 })

@@ -1,3 +1,5 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
 import buildMovingAverage from '../src/metrics/buildMovingAverage.js'
 import { MetricWeek } from '../src/types/index.js'
 
@@ -5,20 +7,32 @@ describe('buildMovingAverage', () => {
   it('should calculate moving average with default window size', () => {
     const calendar: MetricWeek[] = [
       {
-        nodes: [{ points: 5 }, { points: 3 }],
-        metrics: { nodes: {}, points: {} }
+        firstDay: new Date('2023-10-01'),
+        nodes: [{ points: 5 }, { points: 3 }] as any,
+        metrics: {
+          nodes: { count: 0, velocity: 0, distribution: 0 },
+          points: { count: 0, velocity: 0, distribution: 0 }
+        }
       },
       {
-        nodes: [{ points: 8 }],
-        metrics: { nodes: {}, points: {} }
+        firstDay: new Date('2023-10-08'),
+        nodes: [{ points: 8 }] as any,
+        metrics: {
+          nodes: { count: 0, velocity: 0, distribution: 0 },
+          points: { count: 0, velocity: 0, distribution: 0 }
+        }
       },
       {
-        nodes: [{ points: 2 }, { points: 4 }, { points: 6 }],
-        metrics: { nodes: {}, points: {} }
+        firstDay: new Date('2023-10-15'),
+        nodes: [{ points: 2 }, { points: 4 }, { points: 6 }] as any,
+        metrics: {
+          nodes: { count: 0, velocity: 0, distribution: 0 },
+          points: { count: 0, velocity: 0, distribution: 0 }
+        }
       }
     ]
 
-    const result = buildMovingAverage(calendar)
+    const result = buildMovingAverage(calendar) as any
 
     expect(result).toHaveLength(calendar.length)
     expect(result[0].metrics.velocityWindow).toBe(1)
@@ -35,8 +49,8 @@ describe('buildMovingAverage', () => {
       { points: 5 },
       { points: 3 }
     ])
-    expect(result[1].metrics.nodes.velocity).toBe(3)
-    expect(result[1].metrics.points.velocity).toBe(8.7)
+    expect(result[1].metrics.nodes.velocity).toBe(1.5)
+    expect(result[1].metrics.points.velocity).toBe(8)
 
     expect(result[2].metrics.velocityWindow).toBe(3)
     expect(result[2].metrics.velocityNodes).toEqual([
@@ -47,27 +61,39 @@ describe('buildMovingAverage', () => {
       { points: 5 },
       { points: 3 }
     ])
-    expect(result[2].metrics.nodes.velocity).toBe(6)
-    expect(result[2].metrics.points.velocity).toBe(9.7)
+    expect(result[2].metrics.nodes.velocity).toBe(2)
+    expect(result[2].metrics.points.velocity).toBe(9.3)
   })
 
   it('should calculate moving average with custom window size', () => {
     const calendar: MetricWeek[] = [
       {
-        nodes: [{ points: 5 }],
-        metrics: { nodes: {}, points: {} }
+        firstDay: new Date('2023-10-01'),
+        nodes: [{ points: 5 }] as any,
+        metrics: {
+          nodes: { count: 0, velocity: 0, distribution: 0 },
+          points: { count: 0, velocity: 0, distribution: 0 }
+        }
       },
       {
-        nodes: [{ points: 10 }],
-        metrics: { nodes: {}, points: {} }
+        firstDay: new Date('2023-10-08'),
+        nodes: [{ points: 10 }] as any,
+        metrics: {
+          nodes: { count: 0, velocity: 0, distribution: 0 },
+          points: { count: 0, velocity: 0, distribution: 0 }
+        }
       },
       {
-        nodes: [{ points: 15 }],
-        metrics: { nodes: {}, points: {} }
+        firstDay: new Date('2023-10-15'),
+        nodes: [{ points: 15 }] as any,
+        metrics: {
+          nodes: { count: 0, velocity: 0, distribution: 0 },
+          points: { count: 0, velocity: 0, distribution: 0 }
+        }
       }
     ]
 
-    const result = buildMovingAverage(calendar, 2)
+    const result = buildMovingAverage(calendar, 2) as any
 
     expect(result).toHaveLength(calendar.length)
     expect(result[0].metrics.velocityWindow).toBe(1)
@@ -75,11 +101,11 @@ describe('buildMovingAverage', () => {
     expect(result[0].metrics.points.velocity).toBe(5)
 
     expect(result[1].metrics.velocityWindow).toBe(2)
-    expect(result[1].metrics.nodes.velocity).toBe(2)
+    expect(result[1].metrics.nodes.velocity).toBe(1)
     expect(result[1].metrics.points.velocity).toBe(7.5)
 
     expect(result[2].metrics.velocityWindow).toBe(2)
-    expect(result[2].metrics.nodes.velocity).toBe(2)
+    expect(result[2].metrics.nodes.velocity).toBe(1)
     expect(result[2].metrics.points.velocity).toBe(12.5)
   })
 
@@ -94,22 +120,31 @@ describe('buildMovingAverage', () => {
   it('should handle weeks with no nodes', () => {
     const calendar: MetricWeek[] = [
       {
+        firstDay: new Date('2023-10-01'),
         nodes: [],
-        metrics: { nodes: {}, points: {} }
+        metrics: {
+          nodes: { count: 0, velocity: 0, distribution: 0 },
+          points: { count: 0, velocity: 0, distribution: 0 }
+        }
       },
       {
+        firstDay: new Date('2023-10-08'),
         nodes: [],
-        metrics: { nodes: {}, points: {} }
+        metrics: {
+          nodes: { count: 0, velocity: 0, distribution: 0 },
+          points: { count: 0, velocity: 0, distribution: 0 }
+        }
       }
     ]
 
-    const result = buildMovingAverage(calendar)
+    const result = buildMovingAverage(calendar) as any
 
     expect(result).toHaveLength(calendar.length)
-    result.forEach((week) => {
-      expect(week.metrics.velocityWindow).toBe(1)
-      expect(week.metrics.nodes.velocity).toBe(0)
-      expect(week.metrics.points.velocity).toBe(0)
-    })
+    expect(result[0].metrics.velocityWindow).toBe(1)
+    expect(result[0].metrics.nodes.velocity).toBe(0)
+    expect(result[0].metrics.points.velocity).toBe(0)
+    expect(result[1].metrics.velocityWindow).toBe(2)
+    expect(result[1].metrics.nodes.velocity).toBe(0)
+    expect(result[1].metrics.points.velocity).toBe(0)
   })
 })
