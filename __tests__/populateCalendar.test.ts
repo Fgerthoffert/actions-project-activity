@@ -1,5 +1,3 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
-
 import { populateCalendar } from '../src/metrics/populateCalendar.js'
 import { MetricWeek, DeliveryItem } from '../src/types/index.js'
 
