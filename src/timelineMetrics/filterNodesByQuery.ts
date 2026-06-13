@@ -1,7 +1,6 @@
 import * as core from '@actions/core'
 
 import { Query } from 'mingo'
-import 'mingo/init/system'
 
 import { ConfigTimelineGroup, DeliveryItem } from '../types/index.js'
 

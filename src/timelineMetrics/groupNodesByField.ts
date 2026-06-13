@@ -1,7 +1,6 @@
 import * as core from '@actions/core'
 
-import { Aggregator } from 'mingo/aggregator'
-import 'mingo/init/system'
+import { Aggregator } from 'mingo'
 
 import {
   DeliveryItem,

@@ -1,9 +1,7 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 import * as core from '@actions/core'
 
-import { Query } from 'mingo'
-import { Aggregator } from 'mingo/aggregator'
-import 'mingo/init/system'
+import { Query, Aggregator } from 'mingo'
 
 import { DeliveryItem, ConfigGroup, MetricStream } from '../types/index.js'
 
