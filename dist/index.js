@@ -45,7 +45,6 @@ import require$$1$6 from 'console';
 import require$$1$7 from 'url';
 import require$$3$1 from 'zlib';
 import require$$0$c from 'diagnostics_channel';
-import 'mingo/init/system';
 
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -104200,6 +104199,11 @@ class Query extends Query$1 {
     super(condition, makeOpts(options));
   }
 }
+class Aggregator extends Aggregator$1 {
+  constructor(pipeline, options) {
+    super(pipeline, makeOpts(options));
+  }
+}
 
 /**
  * Filters and groups delivery items based on a specified query.
@@ -104265,7 +104269,7 @@ const buildStreams = ({ nodes, group }) => {
     let groupNodes = [];
     if (group.groupByField !== undefined) {
         info(`${group.name} - Processing group by field: ${group.groupByField}`);
-        const agg = new Aggregator$1([
+        const agg = new Aggregator([
             { $group: { _id: `$${group.groupByField}`, nodes: { $push: '$$ROOT' } } }
         ]);
         const aggResult = agg.run(nodes);
@@ -105059,7 +105063,7 @@ const groupNodesByField = ({ nodes, group }) => {
     }
     if (group.groupByField !== undefined) {
         info(`${group.name} - Groupping nodes by field: ${group.groupByField}`);
-        const agg = new Aggregator$1([
+        const agg = new Aggregator([
             { $group: { _id: `$${group.groupByField}`, nodes: { $push: '$$ROOT' } } }
         ]);
         const aggResult = agg.run(nodes);
