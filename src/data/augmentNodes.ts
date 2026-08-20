@@ -15,9 +15,12 @@ import {
  * This function aligns the `mergedAt` date to `closedAt` for pull requests, extracts project field values,
  * calculates points based on a specified field, and adds metadata such as labels and associated projects.
  *
+ * Points are resolved by looking first at the issue fields (fields attached directly
+ * to the issue), and only if absent, at the project fields.
+ *
  * @param nodes - An array of GitHub issues or pull requests to be augmented.
  * @param githubProjectCards - An array of GitHub project cards containing additional metadata.
- * @param pointsField - The name of the field in the project cards used to calculate points.
+ * @param pointsField - The name of the field (issue field or project field) used to calculate points.
  * @returns A new array of GitHub issues or pull requests with augmented data.
  */
 export const augmentNodes = ({
@@ -46,6 +49,24 @@ export const augmentNodes = ({
     )
     let points = null
     let projectFields = {}
+
+    // Points are searched first in the issue fields (if any is attached to the issue),
+    // and if absent, in the project fields. Issue fields are fetched as part of the
+    // same GraphQL query used to fetch the issues themselves (no additional API calls).
+    const issuePointsField =
+      'issueFieldValues' in node
+        ? node.issueFieldValues?.nodes.find(
+            (fieldValue) =>
+              fieldValue.__typename === 'IssueFieldNumberValue' &&
+              fieldValue.field?.name === pointsField
+          )
+        : undefined
+    if (
+      issuePointsField !== undefined &&
+      typeof issuePointsField.value === 'number'
+    ) {
+      points = issuePointsField.value
+    }
     if (card) {
       // Projects fields are not necessarily easy to parse
       // You can also refer to the source GraphQL query to learn more
@@ -87,23 +108,27 @@ export const augmentNodes = ({
           },
           {}
         )
-      const pointsfield = card.fieldValues.nodes
-        .filter((obj) => Object.keys(obj).length > 0)
-        .find(
-          (
-            obj
-          ): obj is GitHubProjectV2ItemFieldValue & {
-            field: { name: string }
-          } => 'field' in obj && obj.field?.name === pointsField
-        )
+      // Only look for points in the project fields if they were
+      // not already found in the issue fields
+      if (points === null) {
+        const pointsfield = card.fieldValues.nodes
+          .filter((obj) => Object.keys(obj).length > 0)
+          .find(
+            (
+              obj
+            ): obj is GitHubProjectV2ItemFieldValue & {
+              field: { name: string }
+            } => 'field' in obj && obj.field?.name === pointsField
+          )
 
-      if (pointsfield !== undefined) {
-        if (
-          pointsfield &&
-          '__typename' in pointsfield &&
-          pointsfield.__typename === 'ProjectV2ItemFieldNumberValue'
-        ) {
-          points = pointsfield.number
+        if (pointsfield !== undefined) {
+          if (
+            pointsfield &&
+            '__typename' in pointsfield &&
+            pointsfield.__typename === 'ProjectV2ItemFieldNumberValue'
+          ) {
+            points = pointsfield.number
+          }
         }
       }
     }

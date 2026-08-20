@@ -39,9 +39,22 @@ export const getIssuesGraphQL = `
         issueType {
           name
         }
+        issueFieldValues(first: 20) {
+          nodes {
+            __typename
+            ... on IssueFieldNumberValue {
+              value
+              field {
+                ... on IssueFieldNumber {
+                  name
+                }
+              }
+            }
+          }
+        }
         parent {
           title
-        }          
+        }
       }
     }
   }
