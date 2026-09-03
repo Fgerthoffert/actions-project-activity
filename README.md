@@ -200,7 +200,10 @@ configuration file:
 
 ```yaml
 fields:
-  points: Story Points # Name of the Project field used for Story Points
+  # Name of the field used for Story Points. The field is searched first
+  # in the issue fields (fields attached directly to the issue), and if
+  # absent, in the project fields.
+  points: Story Points
 movingWindow: 6 # in weeks, window to calculate moving average
 # Array of Groups, each group generates one HTML Dashboard
 groups:

@@ -97,6 +97,9 @@ export interface GitHubIssue extends GitHubIssueBase {
     totalCount: number
     nodes: GitHubIssue[]
   }
+  issueFieldValues?: {
+    nodes: GitHubIssueFieldValue[]
+  }
 }
 
 export interface GitHubIssueAugmented extends GitHubIssue {
@@ -175,3 +178,14 @@ export type GitHubProjectV2ItemFieldValue =
   | GitHubProjectV2ItemFieldNumberValue
   | GitHubProjectV2ItemFieldSingleSelectValue
   | GitHubProjectV2ItemFieldTextValue
+
+// Issue fields (IssueFieldValue union in the GitHub GraphQL API)
+// Only IssueFieldNumberValue is currently fetched with its details,
+// other members of the union are returned with their __typename only
+export interface GitHubIssueFieldValue {
+  __typename: string
+  value?: number | string | null
+  field?: {
+    name?: string
+  } | null
+}
