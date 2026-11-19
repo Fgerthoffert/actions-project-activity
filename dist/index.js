@@ -45,6 +45,8 @@ import require$$1$6 from 'console';
 import require$$1$7 from 'url';
 import require$$3$1 from 'zlib';
 import require$$0$c from 'diagnostics_channel';
+import fs$1 from 'node:fs';
+import path$1 from 'node:path';
 
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -84358,9 +84360,9 @@ const isAlias = (node) => !!node && typeof node === 'object' && node[NODE_TYPE] 
 const isDocument = (node) => !!node && typeof node === 'object' && node[NODE_TYPE] === DOC;
 const isMap = (node) => !!node && typeof node === 'object' && node[NODE_TYPE] === MAP;
 const isPair = (node) => !!node && typeof node === 'object' && node[NODE_TYPE] === PAIR;
-const isScalar$2 = (node) => !!node && typeof node === 'object' && node[NODE_TYPE] === SCALAR$1;
+const isScalar$1 = (node) => !!node && typeof node === 'object' && node[NODE_TYPE] === SCALAR$1;
 const isSeq = (node) => !!node && typeof node === 'object' && node[NODE_TYPE] === SEQ;
-function isCollection$1(node) {
+function isCollection(node) {
     if (node && typeof node === 'object')
         switch (node[NODE_TYPE]) {
             case MAP:
@@ -84380,11 +84382,11 @@ function isNode(node) {
         }
     return false;
 }
-const hasAnchor = (node) => (isScalar$2(node) || isCollection$1(node)) && !!node.anchor;
+const hasAnchor = (node) => (isScalar$1(node) || isCollection(node)) && !!node.anchor;
 
-const BREAK$1 = Symbol('break visit');
-const SKIP$1 = Symbol('skip children');
-const REMOVE$1 = Symbol('remove node');
+const BREAK = Symbol('break visit');
+const SKIP = Symbol('skip children');
+const REMOVE = Symbol('remove node');
 /**
  * Apply a visitor to an AST node or document.
  *
@@ -84415,11 +84417,11 @@ const REMOVE$1 = Symbol('remove node');
  * and `Node` (alias, map, seq & scalar) targets. Of all these, only the most
  * specific defined one will be used for each node.
  */
-function visit$1(node, visitor) {
+function visit(node, visitor) {
     const visitor_ = initVisitor(visitor);
     if (isDocument(node)) {
         const cd = visit_(null, node.contents, visitor_, Object.freeze([node]));
-        if (cd === REMOVE$1)
+        if (cd === REMOVE)
             node.contents = null;
     }
     else
@@ -84429,11 +84431,11 @@ function visit$1(node, visitor) {
 // namespace using `var`, but then complains about that because
 // `unique symbol` must be `const`.
 /** Terminate visit traversal completely */
-visit$1.BREAK = BREAK$1;
+visit.BREAK = BREAK;
 /** Do not visit the children of the current node */
-visit$1.SKIP = SKIP$1;
+visit.SKIP = SKIP;
 /** Remove the current node */
-visit$1.REMOVE = REMOVE$1;
+visit.REMOVE = REMOVE;
 function visit_(key, node, visitor, path) {
     const ctrl = callVisitor(key, node, visitor, path);
     if (isNode(ctrl) || isPair(ctrl)) {
@@ -84441,15 +84443,15 @@ function visit_(key, node, visitor, path) {
         return visit_(key, ctrl, visitor, path);
     }
     if (typeof ctrl !== 'symbol') {
-        if (isCollection$1(node)) {
+        if (isCollection(node)) {
             path = Object.freeze(path.concat(node));
             for (let i = 0; i < node.items.length; ++i) {
                 const ci = visit_(i, node.items[i], visitor, path);
                 if (typeof ci === 'number')
                     i = ci - 1;
-                else if (ci === BREAK$1)
-                    return BREAK$1;
-                else if (ci === REMOVE$1) {
+                else if (ci === BREAK)
+                    return BREAK;
+                else if (ci === REMOVE) {
                     node.items.splice(i, 1);
                     i -= 1;
                 }
@@ -84458,101 +84460,14 @@ function visit_(key, node, visitor, path) {
         else if (isPair(node)) {
             path = Object.freeze(path.concat(node));
             const ck = visit_('key', node.key, visitor, path);
-            if (ck === BREAK$1)
-                return BREAK$1;
-            else if (ck === REMOVE$1)
+            if (ck === BREAK)
+                return BREAK;
+            else if (ck === REMOVE)
                 node.key = null;
             const cv = visit_('value', node.value, visitor, path);
-            if (cv === BREAK$1)
-                return BREAK$1;
-            else if (cv === REMOVE$1)
-                node.value = null;
-        }
-    }
-    return ctrl;
-}
-/**
- * Apply an async visitor to an AST node or document.
- *
- * Walks through the tree (depth-first) starting from `node`, calling a
- * `visitor` function with three arguments:
- *   - `key`: For sequence values and map `Pair`, the node's index in the
- *     collection. Within a `Pair`, `'key'` or `'value'`, correspondingly.
- *     `null` for the root node.
- *   - `node`: The current node.
- *   - `path`: The ancestry of the current node.
- *
- * The return value of the visitor may be used to control the traversal:
- *   - `Promise`: Must resolve to one of the following values
- *   - `undefined` (default): Do nothing and continue
- *   - `visit.SKIP`: Do not visit the children of this node, continue with next
- *     sibling
- *   - `visit.BREAK`: Terminate traversal completely
- *   - `visit.REMOVE`: Remove the current node, then continue with the next one
- *   - `Node`: Replace the current node, then continue by visiting it
- *   - `number`: While iterating the items of a sequence or map, set the index
- *     of the next step. This is useful especially if the index of the current
- *     node has changed.
- *
- * If `visitor` is a single function, it will be called with all values
- * encountered in the tree, including e.g. `null` values. Alternatively,
- * separate visitor functions may be defined for each `Map`, `Pair`, `Seq`,
- * `Alias` and `Scalar` node. To define the same visitor function for more than
- * one node type, use the `Collection` (map and seq), `Value` (map, seq & scalar)
- * and `Node` (alias, map, seq & scalar) targets. Of all these, only the most
- * specific defined one will be used for each node.
- */
-async function visitAsync(node, visitor) {
-    const visitor_ = initVisitor(visitor);
-    if (isDocument(node)) {
-        const cd = await visitAsync_(null, node.contents, visitor_, Object.freeze([node]));
-        if (cd === REMOVE$1)
-            node.contents = null;
-    }
-    else
-        await visitAsync_(null, node, visitor_, Object.freeze([]));
-}
-// Without the `as symbol` casts, TS declares these in the `visit`
-// namespace using `var`, but then complains about that because
-// `unique symbol` must be `const`.
-/** Terminate visit traversal completely */
-visitAsync.BREAK = BREAK$1;
-/** Do not visit the children of the current node */
-visitAsync.SKIP = SKIP$1;
-/** Remove the current node */
-visitAsync.REMOVE = REMOVE$1;
-async function visitAsync_(key, node, visitor, path) {
-    const ctrl = await callVisitor(key, node, visitor, path);
-    if (isNode(ctrl) || isPair(ctrl)) {
-        replaceNode(key, path, ctrl);
-        return visitAsync_(key, ctrl, visitor, path);
-    }
-    if (typeof ctrl !== 'symbol') {
-        if (isCollection$1(node)) {
-            path = Object.freeze(path.concat(node));
-            for (let i = 0; i < node.items.length; ++i) {
-                const ci = await visitAsync_(i, node.items[i], visitor, path);
-                if (typeof ci === 'number')
-                    i = ci - 1;
-                else if (ci === BREAK$1)
-                    return BREAK$1;
-                else if (ci === REMOVE$1) {
-                    node.items.splice(i, 1);
-                    i -= 1;
-                }
-            }
-        }
-        else if (isPair(node)) {
-            path = Object.freeze(path.concat(node));
-            const ck = await visitAsync_('key', node.key, visitor, path);
-            if (ck === BREAK$1)
-                return BREAK$1;
-            else if (ck === REMOVE$1)
-                node.key = null;
-            const cv = await visitAsync_('value', node.value, visitor, path);
-            if (cv === BREAK$1)
-                return BREAK$1;
-            else if (cv === REMOVE$1)
+            if (cv === BREAK)
+                return BREAK;
+            else if (cv === REMOVE)
                 node.value = null;
         }
     }
@@ -84586,7 +84501,7 @@ function callVisitor(key, node, visitor, path) {
         return visitor.Seq?.(key, node, path);
     if (isPair(node))
         return visitor.Pair?.(key, node, path);
-    if (isScalar$2(node))
+    if (isScalar$1(node))
         return visitor.Scalar?.(key, node, path);
     if (isAlias(node))
         return visitor.Alias?.(key, node, path);
@@ -84594,7 +84509,7 @@ function callVisitor(key, node, visitor, path) {
 }
 function replaceNode(key, path, node) {
     const parent = path[path.length - 1];
-    if (isCollection$1(parent)) {
+    if (isCollection(parent)) {
         parent.items[key] = node;
     }
     else if (isPair(parent)) {
@@ -84764,7 +84679,7 @@ class Directives {
         let tagNames;
         if (doc && tagEntries.length > 0 && isNode(doc.contents)) {
             const tags = {};
-            visit$1(doc.contents, (_key, node) => {
+            visit(doc.contents, (_key, node) => {
                 if (isNode(node) && node.tag)
                     tags[node.tag] = true;
             });
@@ -84799,7 +84714,7 @@ function anchorIsValid(anchor) {
 }
 function anchorNames(root) {
     const anchors = new Set();
-    visit$1(root, {
+    visit(root, {
         Value(_key, node) {
             if (node.anchor)
                 anchors.add(node.anchor);
@@ -84837,7 +84752,7 @@ function createNodeAnchors(doc, prefix) {
                 const ref = sourceObjects.get(source);
                 if (typeof ref === 'object' &&
                     ref.anchor &&
-                    (isScalar$2(ref.node) || isCollection$1(ref.node))) {
+                    (isScalar$1(ref.node) || isCollection(ref.node))) {
                     ref.node.anchor = ref.anchor;
                 }
                 else {
@@ -84995,7 +84910,7 @@ class Alias extends NodeBase {
         }
         else {
             nodes = [];
-            visit$1(doc, {
+            visit(doc, {
                 Node: (_key, node) => {
                     if (isAlias(node) || hasAnchor(node))
                         nodes.push(node);
@@ -85011,38 +84926,40 @@ class Alias extends NodeBase {
             if (node.anchor === this.source)
                 found = node;
         }
+        if (found && ctx) {
+            const { anchors, doc, maxAliasCount } = ctx;
+            let data = anchors.get(found);
+            if (!data) {
+                // Resolve anchors for Node.prototype.toJS()
+                toJS(found, null, ctx);
+                data = anchors.get(found);
+            }
+            /* istanbul ignore if */
+            if (data?.res === undefined) {
+                const msg = 'This should not happen: Alias anchor was not resolved?';
+                throw new ReferenceError(msg);
+            }
+            if (maxAliasCount >= 0) {
+                data.count += 1;
+                if (data.aliasCount === 0)
+                    data.aliasCount = getAliasCount(doc, found, anchors);
+                if (data.count * data.aliasCount > maxAliasCount) {
+                    const msg = 'Excessive alias count indicates a resource exhaustion attack';
+                    throw new ReferenceError(msg);
+                }
+            }
+        }
         return found;
     }
     toJSON(_arg, ctx) {
         if (!ctx)
             return { source: this.source };
-        const { anchors, doc, maxAliasCount } = ctx;
-        const source = this.resolve(doc, ctx);
+        const source = this.resolve(ctx.doc, ctx);
         if (!source) {
             const msg = `Unresolved alias (the anchor must be set before the alias): ${this.source}`;
             throw new ReferenceError(msg);
         }
-        let data = anchors.get(source);
-        if (!data) {
-            // Resolve anchors for Node.prototype.toJS()
-            toJS(source, null, ctx);
-            data = anchors.get(source);
-        }
-        /* istanbul ignore if */
-        if (data?.res === undefined) {
-            const msg = 'This should not happen: Alias anchor was not resolved?';
-            throw new ReferenceError(msg);
-        }
-        if (maxAliasCount >= 0) {
-            data.count += 1;
-            if (data.aliasCount === 0)
-                data.aliasCount = getAliasCount(doc, source, anchors);
-            if (data.count * data.aliasCount > maxAliasCount) {
-                const msg = 'Excessive alias count indicates a resource exhaustion attack';
-                throw new ReferenceError(msg);
-            }
-        }
-        return data.res;
+        return ctx.anchors.get(source).res;
     }
     toString(ctx, _onComment, _onChompKeep) {
         const src = `*${this.source}`;
@@ -85064,7 +84981,7 @@ function getAliasCount(doc, node, anchors) {
         const anchor = anchors && source && anchors.get(source);
         return anchor ? anchor.count * anchor.aliasCount : 0;
     }
-    else if (isCollection$1(node)) {
+    else if (isCollection(node)) {
         let count = 0;
         for (const item of node.items) {
             const c = getAliasCount(doc, item, anchors);
@@ -85245,7 +85162,7 @@ let Collection$1 = class Collection extends NodeBase {
         else {
             const [key, ...rest] = path;
             const node = this.get(key, true);
-            if (isCollection$1(node))
+            if (isCollection(node))
                 node.addIn(rest, value);
             else if (node === undefined && this.schema)
                 this.set(key, collectionFromPath(this.schema, rest, value));
@@ -85262,7 +85179,7 @@ let Collection$1 = class Collection extends NodeBase {
         if (rest.length === 0)
             return this.delete(key);
         const node = this.get(key, true);
-        if (isCollection$1(node))
+        if (isCollection(node))
             return node.deleteIn(rest);
         else
             throw new Error(`Expected YAML collection at ${key}. Remaining path: ${rest}`);
@@ -85276,9 +85193,9 @@ let Collection$1 = class Collection extends NodeBase {
         const [key, ...rest] = path;
         const node = this.get(key, true);
         if (rest.length === 0)
-            return !keepScalar && isScalar$2(node) ? node.value : node;
+            return !keepScalar && isScalar$1(node) ? node.value : node;
         else
-            return isCollection$1(node) ? node.getIn(rest, keepScalar) : undefined;
+            return isCollection(node) ? node.getIn(rest, keepScalar) : undefined;
     }
     hasAllNullValues(allowScalar) {
         return this.items.every(node => {
@@ -85287,7 +85204,7 @@ let Collection$1 = class Collection extends NodeBase {
             const n = node.value;
             return (n == null ||
                 (allowScalar &&
-                    isScalar$2(n) &&
+                    isScalar$1(n) &&
                     n.value == null &&
                     !n.commentBefore &&
                     !n.comment &&
@@ -85302,7 +85219,7 @@ let Collection$1 = class Collection extends NodeBase {
         if (rest.length === 0)
             return this.has(key);
         const node = this.get(key, true);
-        return isCollection$1(node) ? node.hasIn(rest) : false;
+        return isCollection(node) ? node.hasIn(rest) : false;
     }
     /**
      * Sets a value in this collection. For `!!set`, `value` needs to be a
@@ -85315,7 +85232,7 @@ let Collection$1 = class Collection extends NodeBase {
         }
         else {
             const node = this.get(key, true);
-            if (isCollection$1(node))
+            if (isCollection(node))
                 node.setIn(rest, value);
             else if (node === undefined && this.schema)
                 this.set(key, collectionFromPath(this.schema, rest, value));
@@ -85871,7 +85788,7 @@ function getTagObject(tags, item) {
     }
     let tagObj = undefined;
     let obj;
-    if (isScalar$2(item)) {
+    if (isScalar$1(item)) {
         obj = item.value;
         let match = tags.filter(t => t.identify?.(obj));
         if (match.length > 1) {
@@ -85897,7 +85814,7 @@ function stringifyProps(node, tagObj, { anchors, doc }) {
     if (!doc.directives)
         return '';
     const props = [];
-    const anchor = (isScalar$2(node) || isCollection$1(node)) && node.anchor;
+    const anchor = (isScalar$1(node) || isCollection(node)) && node.anchor;
     if (anchor && anchorIsValid(anchor)) {
         anchors.add(anchor);
         props.push(`&${anchor}`);
@@ -85907,7 +85824,7 @@ function stringifyProps(node, tagObj, { anchors, doc }) {
         props.push(doc.directives.tagString(tag));
     return props.join(' ');
 }
-function stringify$3(item, ctx, onComment, onChompKeep) {
+function stringify$1(item, ctx, onComment, onChompKeep) {
     if (isPair(item))
         return item.toString(ctx, onComment, onChompKeep);
     if (isAlias(item)) {
@@ -85934,12 +85851,12 @@ function stringify$3(item, ctx, onComment, onChompKeep) {
         ctx.indentAtStart = (ctx.indentAtStart ?? 0) + props.length + 1;
     const str = typeof tagObj.stringify === 'function'
         ? tagObj.stringify(node, ctx, onComment, onChompKeep)
-        : isScalar$2(node)
+        : isScalar$1(node)
             ? stringifyString(node, ctx, onComment, onChompKeep)
             : node.toString(ctx, onComment, onChompKeep);
     if (!props)
         return str;
-    return isScalar$2(node) || str[0] === '{' || str[0] === '['
+    return isScalar$1(node) || str[0] === '{' || str[0] === '['
         ? `${props} ${str}`
         : `${props}\n${ctx.indent}${str}`;
 }
@@ -85951,7 +85868,7 @@ function stringifyPair({ key, value }, ctx, onComment, onChompKeep) {
         if (keyComment) {
             throw new Error('With simple keys, key nodes cannot have comments');
         }
-        if (isCollection$1(key) || (!isNode(key) && typeof key === 'object')) {
+        if (isCollection(key) || (!isNode(key) && typeof key === 'object')) {
             const msg = 'With simple keys, collection cannot be used as a key value';
             throw new Error(msg);
         }
@@ -85959,8 +85876,8 @@ function stringifyPair({ key, value }, ctx, onComment, onChompKeep) {
     let explicitKey = !simpleKeys &&
         (!key ||
             (keyComment && value == null && !ctx.inFlow) ||
-            isCollection$1(key) ||
-            (isScalar$2(key)
+            isCollection(key) ||
+            (isScalar$1(key)
                 ? key.type === Scalar.BLOCK_FOLDED || key.type === Scalar.BLOCK_LITERAL
                 : typeof key === 'object'));
     ctx = Object.assign({}, ctx, {
@@ -85970,7 +85887,7 @@ function stringifyPair({ key, value }, ctx, onComment, onChompKeep) {
     });
     let keyCommentDone = false;
     let chompKeep = false;
-    let str = stringify$3(key, ctx, () => (keyCommentDone = true), () => (chompKeep = true));
+    let str = stringify$1(key, ctx, () => (keyCommentDone = true), () => (chompKeep = true));
     if (!explicitKey && !ctx.inFlow && str.length > 1024) {
         if (simpleKeys)
             throw new Error('With simple keys, single line scalar must not span more than 1024 characters');
@@ -86018,7 +85935,7 @@ function stringifyPair({ key, value }, ctx, onComment, onChompKeep) {
             value = doc.createNode(value);
     }
     ctx.implicitKey = false;
-    if (!explicitKey && !keyComment && isScalar$2(value))
+    if (!explicitKey && !keyComment && isScalar$1(value))
         ctx.indentAtStart = str.length + 1;
     chompKeep = false;
     if (!indentSeq &&
@@ -86033,7 +85950,7 @@ function stringifyPair({ key, value }, ctx, onComment, onChompKeep) {
         ctx.indent = ctx.indent.substring(2);
     }
     let valueCommentDone = false;
-    const valueStr = stringify$3(value, ctx, () => (valueCommentDone = true), () => (chompKeep = true));
+    const valueStr = stringify$1(value, ctx, () => (valueCommentDone = true), () => (chompKeep = true));
     let ws = ' ';
     if (keyComment || vsb || vcb) {
         ws = vsb ? '\n' : '';
@@ -86049,7 +85966,7 @@ function stringifyPair({ key, value }, ctx, onComment, onChompKeep) {
             ws += `\n${ctx.indent}`;
         }
     }
-    else if (!explicitKey && isCollection$1(value)) {
+    else if (!explicitKey && isCollection(value)) {
         const vs0 = valueStr[0];
         const nl0 = valueStr.indexOf('\n');
         const hasNewline = nl0 !== -1;
@@ -86114,7 +86031,7 @@ const merge$2 = {
     stringify: () => MERGE_KEY
 };
 const isMergeKey = (ctx, key) => (merge$2.identify(key) ||
-    (isScalar$2(key) &&
+    (isScalar$1(key) &&
         (!key.type || key.type === Scalar.PLAIN) &&
         merge$2.identify(key.value))) &&
     ctx?.doc.schema.tags.some(tag => tag.tag === merge$2.tag && tag.default);
@@ -86272,7 +86189,7 @@ function stringifyBlockCollection({ comment, items }, ctx, { blockItemPrefix, fl
             }
         }
         chompKeep = false;
-        let str = stringify$3(item, itemCtx, () => (comment = null), () => (chompKeep = true));
+        let str = stringify$1(item, itemCtx, () => (comment = null), () => (chompKeep = true));
         if (comment)
             str += lineComment(str, itemIndent, commentString(comment));
         if (chompKeep && comment)
@@ -86342,7 +86259,7 @@ function stringifyFlowCollection({ items }, ctx, { flowChars, itemIndent }) {
         }
         if (comment)
             reqNewline = true;
-        let str = stringify$3(item, itemCtx, () => (comment = null));
+        let str = stringify$1(item, itemCtx, () => (comment = null));
         reqNewline || (reqNewline = lines.length > linesAtValue || str.includes('\n'));
         if (i < items.length - 1) {
             str += ',';
@@ -86392,12 +86309,12 @@ function addCommentBefore({ indent, options: { commentString } }, lines, comment
 }
 
 function findPair(items, key) {
-    const k = isScalar$2(key) ? key.value : key;
+    const k = isScalar$1(key) ? key.value : key;
     for (const it of items) {
         if (isPair(it)) {
             if (it.key === key || it.key === k)
                 return it;
-            if (isScalar$2(it.key) && it.key.value === k)
+            if (isScalar$1(it.key) && it.key.value === k)
                 return it;
         }
     }
@@ -86461,7 +86378,7 @@ class YAMLMap extends Collection$1 {
             if (!overwrite)
                 throw new Error(`Key ${_pair.key} already set`);
             // For scalars, keep the old node & its comments and anchors
-            if (isScalar$2(prev.value) && isScalarValue(_pair.value))
+            if (isScalar$1(prev.value) && isScalarValue(_pair.value))
                 prev.value.value = _pair.value;
             else
                 prev.value = _pair.value;
@@ -86487,7 +86404,7 @@ class YAMLMap extends Collection$1 {
     get(key, keepScalar) {
         const it = findPair(this.items, key);
         const node = it?.value;
-        return (!keepScalar && isScalar$2(node) ? node.value : node) ?? undefined;
+        return (!keepScalar && isScalar$1(node) ? node.value : node) ?? undefined;
     }
     has(key) {
         return !!findPair(this.items, key);
@@ -86571,7 +86488,7 @@ class YAMLSeq extends Collection$1 {
         if (typeof idx !== 'number')
             return undefined;
         const it = this.items[idx];
-        return !keepScalar && isScalar$2(it) ? it.value : it;
+        return !keepScalar && isScalar$1(it) ? it.value : it;
     }
     /**
      * Checks if the collection includes a value with the key `key`.
@@ -86595,7 +86512,7 @@ class YAMLSeq extends Collection$1 {
         if (typeof idx !== 'number')
             throw new Error(`Expected a valid index, not ${key}.`);
         const prev = this.items[idx];
-        if (isScalar$2(prev) && isScalarValue(value))
+        if (isScalar$1(prev) && isScalarValue(value))
             prev.value = value;
         else
             this.items[idx] = value;
@@ -86637,7 +86554,7 @@ class YAMLSeq extends Collection$1 {
     }
 }
 function asItemIndex(key) {
-    let idx = isScalar$2(key) ? key.value : key;
+    let idx = isScalar$1(key) ? key.value : key;
     if (idx && typeof idx === 'string')
         idx = Number(idx);
     return typeof idx === 'number' && Number.isInteger(idx) && idx >= 0
@@ -87045,7 +86962,7 @@ const omap = {
         const pairs = resolvePairs(seq, onError);
         const seenKeys = [];
         for (const { key } of pairs.items) {
-            if (isScalar$2(key)) {
+            if (isScalar$1(key)) {
                 if (seenKeys.includes(key.value)) {
                     onError(`Ordered maps must not include duplicate keys: ${key.value}`);
                 }
@@ -87220,7 +87137,7 @@ class YAMLSet extends YAMLMap {
     get(key, keepPair) {
         const pair = findPair(this.items, key);
         return !keepPair && isPair(pair)
-            ? isScalar$2(pair.key)
+            ? isScalar$1(pair.key)
                 ? pair.key.value
                 : pair.key
             : pair;
@@ -87547,7 +87464,7 @@ function stringifyDocument(doc, options) {
             contentComment = doc.contents.comment;
         }
         const onChompKeep = contentComment ? undefined : () => (chompKeep = true);
-        let body = stringify$3(doc.contents, ctx, () => (contentComment = null), onChompKeep);
+        let body = stringify$1(doc.contents, ctx, () => (contentComment = null), onChompKeep);
         if (contentComment)
             body += lineComment(body, '', commentString(contentComment));
         if ((body[0] === '|' || body[0] === '>') &&
@@ -87560,7 +87477,7 @@ function stringifyDocument(doc, options) {
             lines.push(body);
     }
     else {
-        lines.push(stringify$3(doc.contents, ctx));
+        lines.push(stringify$1(doc.contents, ctx));
     }
     if (doc.directives?.docEnd) {
         if (doc.comment) {
@@ -87717,7 +87634,7 @@ class Document {
             sourceObjects
         };
         const node = createNode(value, tag, ctx);
-        if (flow && isCollection$1(node))
+        if (flow && isCollection(node))
             node.flow = true;
         setAnchors();
         return node;
@@ -87760,7 +87677,7 @@ class Document {
      * `true` (collections are always returned intact).
      */
     get(key, keepScalar) {
-        return isCollection$1(this.contents)
+        return isCollection(this.contents)
             ? this.contents.get(key, keepScalar)
             : undefined;
     }
@@ -87771,10 +87688,10 @@ class Document {
      */
     getIn(path, keepScalar) {
         if (isEmptyPath(path))
-            return !keepScalar && isScalar$2(this.contents)
+            return !keepScalar && isScalar$1(this.contents)
                 ? this.contents.value
                 : this.contents;
-        return isCollection$1(this.contents)
+        return isCollection(this.contents)
             ? this.contents.getIn(path, keepScalar)
             : undefined;
     }
@@ -87782,7 +87699,7 @@ class Document {
      * Checks if the document includes a value with the key `key`.
      */
     has(key) {
-        return isCollection$1(this.contents) ? this.contents.has(key) : false;
+        return isCollection(this.contents) ? this.contents.has(key) : false;
     }
     /**
      * Checks if the document includes a value at `path`.
@@ -87790,7 +87707,7 @@ class Document {
     hasIn(path) {
         if (isEmptyPath(path))
             return this.contents !== undefined;
-        return isCollection$1(this.contents) ? this.contents.hasIn(path) : false;
+        return isCollection(this.contents) ? this.contents.hasIn(path) : false;
     }
     /**
      * Sets a value in this document. For `!!set`, `value` needs to be a
@@ -87907,7 +87824,7 @@ class Document {
     }
 }
 function assertCollection(contents) {
-    if (isCollection$1(contents))
+    if (isCollection(contents))
         return true;
     throw new Error('Expected a YAML collection as document contents');
 }
@@ -88164,7 +88081,7 @@ function mapIncludes(ctx, items, search) {
         return false;
     const isEqual = typeof uniqueKeys === 'function'
         ? uniqueKeys
-        : (a, b) => a === b || (isScalar$2(a) && isScalar$2(b) && a.value === b.value);
+        : (a, b) => a === b || (isScalar$1(a) && isScalar$1(b) && a.value === b.value);
     return items.some(pair => isEqual(pair.key, search));
 }
 
@@ -88889,46 +88806,47 @@ function plainValue(source, onError) {
     }
     if (badChar)
         onError(0, 'BAD_SCALAR_START', `Plain value cannot start with ${badChar}`);
-    return foldLines(source);
+    return unfoldLines(source);
 }
 function singleQuotedValue(source, onError) {
     if (source[source.length - 1] !== "'" || source.length === 1)
         onError(source.length, 'MISSING_CHAR', "Missing closing 'quote");
-    return foldLines(source.slice(1, -1)).replace(/''/g, "'");
+    return unfoldLines(source.slice(1, -1)).replace(/''/g, "'");
 }
-function foldLines(source) {
-    /**
-     * The negative lookbehind here and in the `re` RegExp is to
-     * prevent causing a polynomial search time in certain cases.
-     *
-     * The try-catch is for Safari, which doesn't support this yet:
-     * https://caniuse.com/js-regexp-lookbehind
-     */
-    let first, line;
-    try {
-        first = new RegExp('(.*?)(?<![ \t])[ \t]*\r?\n', 'sy');
-        line = new RegExp('[ \t]*(.*?)(?:(?<![ \t])[ \t]*)?\r?\n', 'sy');
-    }
-    catch {
-        first = /(.*?)[ \t]*\r?\n/sy;
-        line = /[ \t]*(.*?)[ \t]*\r?\n/sy;
-    }
-    let match = first.exec(source);
+function unfoldLines(source) {
+    const line = /(.*?)\r?\n/sy;
+    let match = line.exec(source);
     if (!match)
         return source;
-    let res = match[1];
+    /**
+     * The negative lookbehinds in these RegExps are to
+     * prevent causing a polynomial search time in certain cases.
+     *
+     * The try-catch is for Safari < 16.4 and other old browsers:
+     * https://caniuse.com/js-regexp-lookbehind
+     */
+    let trimEnd, trimBoth;
+    try {
+        trimEnd = new RegExp('(?<![ \t])[ \t]+$');
+        trimBoth = new RegExp('^[ \t]+|(?<![ \t])[ \t]+$', 'g');
+    }
+    catch {
+        trimEnd = /[ \t]+$/;
+        trimBoth = /^[ \t]+|[ \t]+$/g;
+    }
+    let res = match[1].replace(trimEnd, '');
     let sep = ' ';
-    let pos = first.lastIndex;
-    line.lastIndex = pos;
+    let pos = line.lastIndex;
     while ((match = line.exec(source))) {
-        if (match[1] === '') {
+        const lm = match[1].replace(trimBoth, '');
+        if (lm === '') {
             if (sep === '\n')
                 res += sep;
             else
                 sep = '\n';
         }
         else {
-            res += sep + match[1];
+            res += sep + lm;
             sep = ' ';
         }
         pos = line.lastIndex;
@@ -89067,7 +88985,7 @@ function composeScalar(ctx, token, tagToken, onError) {
     let scalar;
     try {
         const res = tag.resolve(value, msg => onError(tagToken ?? token, 'TAG_RESOLVE_FAILED', msg), ctx.options);
-        scalar = isScalar$2(res) ? res : new Scalar(res);
+        scalar = isScalar$1(res) ? res : new Scalar(res);
     }
     catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -89199,7 +89117,7 @@ function composeNode(ctx, token, props, onError) {
         onError(anchor, 'BAD_ALIAS', 'Anchor cannot be an empty string');
     if (atKey &&
         ctx.options.stringKeys &&
-        (!isScalar$2(node) ||
+        (!isScalar$1(node) ||
             typeof node.value !== 'string' ||
             (node.tag && node.tag !== 'tag:yaml.org,2002:str'))) {
         const msg = 'With stringKeys, all keys must be strings';
@@ -89366,7 +89284,7 @@ class Composer {
             else if (afterEmptyLine || doc.directives.docStart || !dc) {
                 doc.commentBefore = comment;
             }
-            else if (isCollection$1(dc) && !dc.flow && dc.items.length > 0) {
+            else if (isCollection(dc) && !dc.flow && dc.items.length > 0) {
                 let it = dc.items[0];
                 if (isPair(it))
                     it = it.key;
@@ -89501,370 +89419,6 @@ class Composer {
     }
 }
 
-function resolveAsScalar(token, strict = true, onError) {
-    if (token) {
-        const _onError = (pos, code, message) => {
-            const offset = typeof pos === 'number' ? pos : Array.isArray(pos) ? pos[0] : pos.offset;
-            if (onError)
-                onError(offset, code, message);
-            else
-                throw new YAMLParseError([offset, offset + 1], code, message);
-        };
-        switch (token.type) {
-            case 'scalar':
-            case 'single-quoted-scalar':
-            case 'double-quoted-scalar':
-                return resolveFlowScalar(token, strict, _onError);
-            case 'block-scalar':
-                return resolveBlockScalar({ options: { strict } }, token, _onError);
-        }
-    }
-    return null;
-}
-/**
- * Create a new scalar token with `value`
- *
- * Values that represent an actual string but may be parsed as a different type should use a `type` other than `'PLAIN'`,
- * as this function does not support any schema operations and won't check for such conflicts.
- *
- * @param value The string representation of the value, which will have its content properly indented.
- * @param context.end Comments and whitespace after the end of the value, or after the block scalar header. If undefined, a newline will be added.
- * @param context.implicitKey Being within an implicit key may affect the resolved type of the token's value.
- * @param context.indent The indent level of the token.
- * @param context.inFlow Is this scalar within a flow collection? This may affect the resolved type of the token's value.
- * @param context.offset The offset position of the token.
- * @param context.type The preferred type of the scalar token. If undefined, the previous type of the `token` will be used, defaulting to `'PLAIN'`.
- */
-function createScalarToken(value, context) {
-    const { implicitKey = false, indent, inFlow = false, offset = -1, type = 'PLAIN' } = context;
-    const source = stringifyString({ type, value }, {
-        implicitKey,
-        indent: indent > 0 ? ' '.repeat(indent) : '',
-        inFlow,
-        options: { blockQuote: true, lineWidth: -1 }
-    });
-    const end = context.end ?? [
-        { type: 'newline', offset: -1, indent, source: '\n' }
-    ];
-    switch (source[0]) {
-        case '|':
-        case '>': {
-            const he = source.indexOf('\n');
-            const head = source.substring(0, he);
-            const body = source.substring(he + 1) + '\n';
-            const props = [
-                { type: 'block-scalar-header', offset, indent, source: head }
-            ];
-            if (!addEndtoBlockProps(props, end))
-                props.push({ type: 'newline', offset: -1, indent, source: '\n' });
-            return { type: 'block-scalar', offset, indent, props, source: body };
-        }
-        case '"':
-            return { type: 'double-quoted-scalar', offset, indent, source, end };
-        case "'":
-            return { type: 'single-quoted-scalar', offset, indent, source, end };
-        default:
-            return { type: 'scalar', offset, indent, source, end };
-    }
-}
-/**
- * Set the value of `token` to the given string `value`, overwriting any previous contents and type that it may have.
- *
- * Best efforts are made to retain any comments previously associated with the `token`,
- * though all contents within a collection's `items` will be overwritten.
- *
- * Values that represent an actual string but may be parsed as a different type should use a `type` other than `'PLAIN'`,
- * as this function does not support any schema operations and won't check for such conflicts.
- *
- * @param token Any token. If it does not include an `indent` value, the value will be stringified as if it were an implicit key.
- * @param value The string representation of the value, which will have its content properly indented.
- * @param context.afterKey In most cases, values after a key should have an additional level of indentation.
- * @param context.implicitKey Being within an implicit key may affect the resolved type of the token's value.
- * @param context.inFlow Being within a flow collection may affect the resolved type of the token's value.
- * @param context.type The preferred type of the scalar token. If undefined, the previous type of the `token` will be used, defaulting to `'PLAIN'`.
- */
-function setScalarValue(token, value, context = {}) {
-    let { afterKey = false, implicitKey = false, inFlow = false, type } = context;
-    let indent = 'indent' in token ? token.indent : null;
-    if (afterKey && typeof indent === 'number')
-        indent += 2;
-    if (!type)
-        switch (token.type) {
-            case 'single-quoted-scalar':
-                type = 'QUOTE_SINGLE';
-                break;
-            case 'double-quoted-scalar':
-                type = 'QUOTE_DOUBLE';
-                break;
-            case 'block-scalar': {
-                const header = token.props[0];
-                if (header.type !== 'block-scalar-header')
-                    throw new Error('Invalid block scalar header');
-                type = header.source[0] === '>' ? 'BLOCK_FOLDED' : 'BLOCK_LITERAL';
-                break;
-            }
-            default:
-                type = 'PLAIN';
-        }
-    const source = stringifyString({ type, value }, {
-        implicitKey: implicitKey || indent === null,
-        indent: indent !== null && indent > 0 ? ' '.repeat(indent) : '',
-        inFlow,
-        options: { blockQuote: true, lineWidth: -1 }
-    });
-    switch (source[0]) {
-        case '|':
-        case '>':
-            setBlockScalarValue(token, source);
-            break;
-        case '"':
-            setFlowScalarValue(token, source, 'double-quoted-scalar');
-            break;
-        case "'":
-            setFlowScalarValue(token, source, 'single-quoted-scalar');
-            break;
-        default:
-            setFlowScalarValue(token, source, 'scalar');
-    }
-}
-function setBlockScalarValue(token, source) {
-    const he = source.indexOf('\n');
-    const head = source.substring(0, he);
-    const body = source.substring(he + 1) + '\n';
-    if (token.type === 'block-scalar') {
-        const header = token.props[0];
-        if (header.type !== 'block-scalar-header')
-            throw new Error('Invalid block scalar header');
-        header.source = head;
-        token.source = body;
-    }
-    else {
-        const { offset } = token;
-        const indent = 'indent' in token ? token.indent : -1;
-        const props = [
-            { type: 'block-scalar-header', offset, indent, source: head }
-        ];
-        if (!addEndtoBlockProps(props, 'end' in token ? token.end : undefined))
-            props.push({ type: 'newline', offset: -1, indent, source: '\n' });
-        for (const key of Object.keys(token))
-            if (key !== 'type' && key !== 'offset')
-                delete token[key];
-        Object.assign(token, { type: 'block-scalar', indent, props, source: body });
-    }
-}
-/** @returns `true` if last token is a newline */
-function addEndtoBlockProps(props, end) {
-    if (end)
-        for (const st of end)
-            switch (st.type) {
-                case 'space':
-                case 'comment':
-                    props.push(st);
-                    break;
-                case 'newline':
-                    props.push(st);
-                    return true;
-            }
-    return false;
-}
-function setFlowScalarValue(token, source, type) {
-    switch (token.type) {
-        case 'scalar':
-        case 'double-quoted-scalar':
-        case 'single-quoted-scalar':
-            token.type = type;
-            token.source = source;
-            break;
-        case 'block-scalar': {
-            const end = token.props.slice(1);
-            let oa = source.length;
-            if (token.props[0].type === 'block-scalar-header')
-                oa -= token.props[0].source.length;
-            for (const tok of end)
-                tok.offset += oa;
-            delete token.props;
-            Object.assign(token, { type, source, end });
-            break;
-        }
-        case 'block-map':
-        case 'block-seq': {
-            const offset = token.offset + source.length;
-            const nl = { type: 'newline', offset, indent: token.indent, source: '\n' };
-            delete token.items;
-            Object.assign(token, { type, source, end: [nl] });
-            break;
-        }
-        default: {
-            const indent = 'indent' in token ? token.indent : -1;
-            const end = 'end' in token && Array.isArray(token.end)
-                ? token.end.filter(st => st.type === 'space' ||
-                    st.type === 'comment' ||
-                    st.type === 'newline')
-                : [];
-            for (const key of Object.keys(token))
-                if (key !== 'type' && key !== 'offset')
-                    delete token[key];
-            Object.assign(token, { type, indent, source, end });
-        }
-    }
-}
-
-/**
- * Stringify a CST document, token, or collection item
- *
- * Fair warning: This applies no validation whatsoever, and
- * simply concatenates the sources in their logical order.
- */
-const stringify$2 = (cst) => 'type' in cst ? stringifyToken(cst) : stringifyItem(cst);
-function stringifyToken(token) {
-    switch (token.type) {
-        case 'block-scalar': {
-            let res = '';
-            for (const tok of token.props)
-                res += stringifyToken(tok);
-            return res + token.source;
-        }
-        case 'block-map':
-        case 'block-seq': {
-            let res = '';
-            for (const item of token.items)
-                res += stringifyItem(item);
-            return res;
-        }
-        case 'flow-collection': {
-            let res = token.start.source;
-            for (const item of token.items)
-                res += stringifyItem(item);
-            for (const st of token.end)
-                res += st.source;
-            return res;
-        }
-        case 'document': {
-            let res = stringifyItem(token);
-            if (token.end)
-                for (const st of token.end)
-                    res += st.source;
-            return res;
-        }
-        default: {
-            let res = token.source;
-            if ('end' in token && token.end)
-                for (const st of token.end)
-                    res += st.source;
-            return res;
-        }
-    }
-}
-function stringifyItem({ start, key, sep, value }) {
-    let res = '';
-    for (const st of start)
-        res += st.source;
-    if (key)
-        res += stringifyToken(key);
-    if (sep)
-        for (const st of sep)
-            res += st.source;
-    if (value)
-        res += stringifyToken(value);
-    return res;
-}
-
-const BREAK = Symbol('break visit');
-const SKIP = Symbol('skip children');
-const REMOVE = Symbol('remove item');
-/**
- * Apply a visitor to a CST document or item.
- *
- * Walks through the tree (depth-first) starting from the root, calling a
- * `visitor` function with two arguments when entering each item:
- *   - `item`: The current item, which included the following members:
- *     - `start: SourceToken[]` – Source tokens before the key or value,
- *       possibly including its anchor or tag.
- *     - `key?: Token | null` – Set for pair values. May then be `null`, if
- *       the key before the `:` separator is empty.
- *     - `sep?: SourceToken[]` – Source tokens between the key and the value,
- *       which should include the `:` map value indicator if `value` is set.
- *     - `value?: Token` – The value of a sequence item, or of a map pair.
- *   - `path`: The steps from the root to the current node, as an array of
- *     `['key' | 'value', number]` tuples.
- *
- * The return value of the visitor may be used to control the traversal:
- *   - `undefined` (default): Do nothing and continue
- *   - `visit.SKIP`: Do not visit the children of this token, continue with
- *      next sibling
- *   - `visit.BREAK`: Terminate traversal completely
- *   - `visit.REMOVE`: Remove the current item, then continue with the next one
- *   - `number`: Set the index of the next step. This is useful especially if
- *     the index of the current token has changed.
- *   - `function`: Define the next visitor for this item. After the original
- *     visitor is called on item entry, next visitors are called after handling
- *     a non-empty `key` and when exiting the item.
- */
-function visit(cst, visitor) {
-    if ('type' in cst && cst.type === 'document')
-        cst = { start: cst.start, value: cst.value };
-    _visit(Object.freeze([]), cst, visitor);
-}
-// Without the `as symbol` casts, TS declares these in the `visit`
-// namespace using `var`, but then complains about that because
-// `unique symbol` must be `const`.
-/** Terminate visit traversal completely */
-visit.BREAK = BREAK;
-/** Do not visit the children of the current item */
-visit.SKIP = SKIP;
-/** Remove the current item */
-visit.REMOVE = REMOVE;
-/** Find the item at `path` from `cst` as the root */
-visit.itemAtPath = (cst, path) => {
-    let item = cst;
-    for (const [field, index] of path) {
-        const tok = item?.[field];
-        if (tok && 'items' in tok) {
-            item = tok.items[index];
-        }
-        else
-            return undefined;
-    }
-    return item;
-};
-/**
- * Get the immediate parent collection of the item at `path` from `cst` as the root.
- *
- * Throws an error if the collection is not found, which should never happen if the item itself exists.
- */
-visit.parentCollection = (cst, path) => {
-    const parent = visit.itemAtPath(cst, path.slice(0, -1));
-    const field = path[path.length - 1][0];
-    const coll = parent?.[field];
-    if (coll && 'items' in coll)
-        return coll;
-    throw new Error('Parent collection not found');
-};
-function _visit(path, item, visitor) {
-    let ctrl = visitor(item, path);
-    if (typeof ctrl === 'symbol')
-        return ctrl;
-    for (const field of ['key', 'value']) {
-        const token = item[field];
-        if (token && 'items' in token) {
-            for (let i = 0; i < token.items.length; ++i) {
-                const ci = _visit(Object.freeze(path.concat([[field, i]])), token.items[i], visitor);
-                if (typeof ci === 'number')
-                    i = ci - 1;
-                else if (ci === BREAK)
-                    return BREAK;
-                else if (ci === REMOVE) {
-                    token.items.splice(i, 1);
-                    i -= 1;
-                }
-            }
-            if (typeof ctrl === 'function' && field === 'key')
-                ctrl = ctrl(item, path);
-        }
-    }
-    return typeof ctrl === 'function' ? ctrl(item, path) : ctrl;
-}
-
 /** The byte order mark */
 const BOM = '\u{FEFF}';
 /** Start of doc-mode */
@@ -89873,30 +89427,6 @@ const DOCUMENT = '\x02'; // C0: Start of Text
 const FLOW_END = '\x18'; // C0: Cancel
 /** Next token is a scalar value */
 const SCALAR = '\x1f'; // C0: Unit Separator
-/** @returns `true` if `token` is a flow or block collection */
-const isCollection = (token) => !!token && 'items' in token;
-/** @returns `true` if `token` is a flow or block scalar; not an alias */
-const isScalar$1 = (token) => !!token &&
-    (token.type === 'scalar' ||
-        token.type === 'single-quoted-scalar' ||
-        token.type === 'double-quoted-scalar' ||
-        token.type === 'block-scalar');
-/* istanbul ignore next */
-/** Get a printable representation of a lexer token */
-function prettyToken(token) {
-    switch (token) {
-        case BOM:
-            return '<BOM>';
-        case DOCUMENT:
-            return '<DOC>';
-        case FLOW_END:
-            return '<FLOW_END>';
-        case SCALAR:
-            return '<SCALAR>';
-        default:
-            return JSON.stringify(token);
-    }
-}
 /** Identify the type of a lexer token. May return `null` for unknown tokens. */
 function tokenType(source) {
     switch (source) {
@@ -89957,23 +89487,6 @@ function tokenType(source) {
     }
     return null;
 }
-
-var cst = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    BOM: BOM,
-    DOCUMENT: DOCUMENT,
-    FLOW_END: FLOW_END,
-    SCALAR: SCALAR,
-    createScalarToken: createScalarToken,
-    isCollection: isCollection,
-    isScalar: isScalar$1,
-    prettyToken: prettyToken,
-    resolveAsScalar: resolveAsScalar,
-    setScalarValue: setScalarValue,
-    stringify: stringify$2,
-    tokenType: tokenType,
-    visit: visit
-});
 
 /*
 START -> stream
@@ -91707,29 +91220,6 @@ function parseOptions(options) {
     const lineCounter = options.lineCounter || (prettyErrors && new LineCounter()) || null;
     return { lineCounter, prettyErrors };
 }
-/**
- * Parse the input as a stream of YAML documents.
- *
- * Documents should be separated from each other by `...` or `---` marker lines.
- *
- * @returns If an empty `docs` array is returned, it will be of type
- *   EmptyStream and contain additional stream information. In
- *   TypeScript, you should use `'empty' in docs` as a type guard for it.
- */
-function parseAllDocuments(source, options = {}) {
-    const { lineCounter, prettyErrors } = parseOptions(options);
-    const parser = new Parser(lineCounter?.addNewLine);
-    const composer = new Composer(options);
-    const docs = Array.from(composer.compose(parser.parse(source)));
-    if (prettyErrors && lineCounter)
-        for (const doc of docs) {
-            doc.errors.forEach(prettifyError(source, lineCounter));
-            doc.warnings.forEach(prettifyError(source, lineCounter));
-        }
-    if (docs.length > 0)
-        return docs;
-    return Object.assign([], { empty: true }, composer.streamInfo());
-}
 /** Parse an input string into a single YAML.Document */
 function parseDocument(source, options = {}) {
     const { lineCounter, prettyErrors } = parseOptions(options);
@@ -91753,12 +91243,6 @@ function parseDocument(source, options = {}) {
 }
 function parse$3(src, reviver, options) {
     let _reviver = undefined;
-    if (typeof reviver === 'function') {
-        _reviver = reviver;
-    }
-    else if (options === undefined && reviver && typeof reviver === 'object') {
-        options = reviver;
-    }
     const doc = parseDocument(src, options);
     if (!doc)
         return null;
@@ -91771,62 +91255,6 @@ function parse$3(src, reviver, options) {
     }
     return doc.toJS(Object.assign({ reviver: _reviver }, options));
 }
-function stringify$1(value, replacer, options) {
-    let _replacer = null;
-    if (typeof replacer === 'function' || Array.isArray(replacer)) {
-        _replacer = replacer;
-    }
-    else if (options === undefined && replacer) {
-        options = replacer;
-    }
-    if (typeof options === 'string')
-        options = options.length;
-    if (typeof options === 'number') {
-        const indent = Math.round(options);
-        options = indent < 1 ? undefined : indent > 8 ? { indent: 8 } : { indent };
-    }
-    if (value === undefined) {
-        const { keepUndefined } = options ?? replacer ?? {};
-        if (!keepUndefined)
-            return undefined;
-    }
-    if (isDocument(value) && !_replacer)
-        return value.toString(options);
-    return new Document(value, _replacer, options).toString(options);
-}
-
-var YAML = /*#__PURE__*/Object.freeze({
-    __proto__: null,
-    Alias: Alias,
-    CST: cst,
-    Composer: Composer,
-    Document: Document,
-    Lexer: Lexer,
-    LineCounter: LineCounter,
-    Pair: Pair,
-    Parser: Parser,
-    Scalar: Scalar,
-    Schema: Schema,
-    YAMLError: YAMLError,
-    YAMLMap: YAMLMap,
-    YAMLParseError: YAMLParseError,
-    YAMLSeq: YAMLSeq,
-    YAMLWarning: YAMLWarning,
-    isAlias: isAlias,
-    isCollection: isCollection$1,
-    isDocument: isDocument,
-    isMap: isMap,
-    isNode: isNode,
-    isPair: isPair,
-    isScalar: isScalar$2,
-    isSeq: isSeq,
-    parse: parse$3,
-    parseAllDocuments: parseAllDocuments,
-    parseDocument: parseDocument,
-    stringify: stringify$1,
-    visit: visit$1,
-    visitAsync: visitAsync
-});
 
 /**
  * Formats a given date object into a string in the format "YYYY-MM-DD".
@@ -91907,7 +91335,7 @@ const replaceDatesInConfig = (configString, baseDate = new Date()) => {
 const loadActionConfig = async (inputYamlConfig) => {
     let file = fs__default.readFileSync(inputYamlConfig, 'utf8');
     file = replaceDatesInConfig(file);
-    const config = YAML.parse(file);
+    const config = parse$3(file);
     info(`Loaded action config file at: ${inputYamlConfig}`);
     debug('JSON representation of the YAML config:');
     debug(JSON.stringify(config));
@@ -95783,846 +95211,1435 @@ var Hashery = class extends Hookified {
 };
 /* v8 ignore next -- @preserve */
 
-// src/shorthand-time.ts
-var shorthandToMilliseconds = (shorthand) => {
-  let milliseconds;
-  if (shorthand === void 0) {
-    return void 0;
-  }
-  if (typeof shorthand === "number") {
-    milliseconds = shorthand;
-  } else {
-    if (typeof shorthand !== "string") {
-      return void 0;
-    }
-    shorthand = shorthand.trim();
-    if (Number.isNaN(Number(shorthand))) {
-      const match = /^([\d.]+)\s*(ms|s|m|h|hr|d)$/i.exec(shorthand);
-      if (!match) {
-        throw new Error(
-          `Unsupported time format: "${shorthand}". Use 'ms', 's', 'm', 'h', 'hr', or 'd'.`
-        );
-      }
-      const [, value, unit] = match;
-      const numericValue = Number.parseFloat(value);
-      const unitLower = unit.toLowerCase();
-      switch (unitLower) {
-        case "ms": {
-          milliseconds = numericValue;
-          break;
-        }
-        case "s": {
-          milliseconds = numericValue * 1e3;
-          break;
-        }
-        case "m": {
-          milliseconds = numericValue * 1e3 * 60;
-          break;
-        }
-        case "h": {
-          milliseconds = numericValue * 1e3 * 60 * 60;
-          break;
-        }
-        case "hr": {
-          milliseconds = numericValue * 1e3 * 60 * 60;
-          break;
-        }
-        case "d": {
-          milliseconds = numericValue * 1e3 * 60 * 60 * 24;
-          break;
-        }
-        /* v8 ignore next -- @preserve */
-        default: {
-          milliseconds = Number(shorthand);
-        }
-      }
-    } else {
-      milliseconds = Number(shorthand);
-    }
-  }
-  return milliseconds;
+//#region src/shorthand-time.ts
+/**
+* Converts a shorthand time string or number into milliseconds.
+* The shorthand can be a string like '1s', '2m', '3h', '4d', or a number representing milliseconds.
+* If the input is undefined, it returns undefined.
+* If the input is a string that does not match the expected format, it throws an error.
+* @param shorthand - A shorthand time string or number representing milliseconds.
+* @returns The equivalent time in milliseconds or undefined.
+*/
+const shorthandToMilliseconds = (shorthand) => {
+	let milliseconds;
+	if (shorthand === void 0) return;
+	if (typeof shorthand === "number") milliseconds = shorthand;
+	else {
+		if (typeof shorthand !== "string") return;
+		shorthand = shorthand.trim();
+		if (Number.isNaN(Number(shorthand))) {
+			const match = /^([\d.]+)\s*(ms|s|m|h|hr|d)$/i.exec(shorthand);
+			if (!match) throw new Error(`Unsupported time format: "${shorthand}". Use 'ms', 's', 'm', 'h', 'hr', or 'd'.`);
+			const [, value, unit] = match;
+			const numericValue = Number.parseFloat(value);
+			switch (unit.toLowerCase()) {
+				case "ms":
+					milliseconds = numericValue;
+					break;
+				case "s":
+					milliseconds = numericValue * 1e3;
+					break;
+				case "m":
+					milliseconds = numericValue * 1e3 * 60;
+					break;
+				case "h":
+					milliseconds = numericValue * 1e3 * 60 * 60;
+					break;
+				case "hr":
+					milliseconds = numericValue * 1e3 * 60 * 60;
+					break;
+				case "d":
+					milliseconds = numericValue * 1e3 * 60 * 60 * 24;
+					break;
+				/* v8 ignore next -- @preserve */
+				default: milliseconds = Number(shorthand);
+			}
+		} else milliseconds = Number(shorthand);
+	}
+	return milliseconds;
 };
-var shorthandToTime = (shorthand, fromDate) => {
-  fromDate ??= /* @__PURE__ */ new Date();
-  const milliseconds = shorthandToMilliseconds(shorthand);
-  if (milliseconds === void 0) {
-    return fromDate.getTime();
-  }
-  return fromDate.getTime() + milliseconds;
+/**
+* Converts a shorthand time string or number into a timestamp.
+* If the shorthand is undefined, it returns the current date's timestamp.
+* If the shorthand is a valid time format, it adds that duration to the current date's timestamp.
+* @param shorthand - A shorthand time string or number representing milliseconds.
+* @param fromDate - An optional Date object to calculate from. Defaults to the current date if not provided.
+* @returns The timestamp in milliseconds since epoch.
+*/
+const shorthandToTime = (shorthand, fromDate) => {
+	fromDate ??= /* @__PURE__ */ new Date();
+	const milliseconds = shorthandToMilliseconds(shorthand);
+	if (milliseconds === void 0) return fromDate.getTime();
+	return fromDate.getTime() + milliseconds;
 };
-var HashAlgorithm = /* @__PURE__ */ ((HashAlgorithm2) => {
-  HashAlgorithm2["SHA256"] = "SHA-256";
-  HashAlgorithm2["SHA384"] = "SHA-384";
-  HashAlgorithm2["SHA512"] = "SHA-512";
-  HashAlgorithm2["DJB2"] = "djb2";
-  HashAlgorithm2["FNV1"] = "fnv1";
-  HashAlgorithm2["MURMER"] = "murmer";
-  HashAlgorithm2["CRC32"] = "crc32";
-  return HashAlgorithm2;
-})(HashAlgorithm || {});
+//#endregion
+//#region src/hash.ts
+let HashAlgorithm = /* @__PURE__ */ function(HashAlgorithm) {
+	HashAlgorithm["SHA256"] = "SHA-256";
+	HashAlgorithm["SHA384"] = "SHA-384";
+	HashAlgorithm["SHA512"] = "SHA-512";
+	HashAlgorithm["DJB2"] = "djb2";
+	HashAlgorithm["FNV1"] = "fnv1";
+	HashAlgorithm["MURMER"] = "murmer";
+	HashAlgorithm["CRC32"] = "crc32";
+	return HashAlgorithm;
+}({});
+/**
+* Hashes an object synchronously using the specified non-cryptographic algorithm.
+* This method should be used for non-cryptographic algorithms (DJB2, FNV1, MURMER, CRC32).
+* For cryptographic algorithms, use hash() instead.
+* @param object The object to hash
+* @param options The hash options to use
+* @returns {string} The hash of the object
+*/
 function hashSync(object, options = {
-  algorithm: "djb2" /* DJB2 */,
-  serialize: JSON.stringify
+	algorithm: "djb2",
+	serialize: JSON.stringify
 }) {
-  const algorithm = options?.algorithm ?? "djb2" /* DJB2 */;
-  const serialize = options?.serialize ?? JSON.stringify;
-  const objectString = serialize(object);
-  const hashery = new Hashery();
-  return hashery.toHashSync(objectString, { algorithm });
+	const algorithm = options?.algorithm ?? "djb2";
+	const objectString = (options?.serialize ?? JSON.stringify)(object);
+	return new Hashery().toHashSync(objectString, { algorithm });
 }
+/**
+* Hashes an object synchronously and converts it to a number within a specified range.
+* This method should be used for non-cryptographic algorithms (DJB2, FNV1, MURMER, CRC32).
+* For cryptographic algorithms, use hashToNumber() instead.
+* @param object The object to hash
+* @param options The hash options to use including min/max range
+* @returns {number} A number within the specified range
+*/
 function hashToNumberSync(object, options = {
-  min: 0,
-  max: 10,
-  algorithm: "djb2" /* DJB2 */,
-  serialize: JSON.stringify
+	min: 0,
+	max: 10,
+	algorithm: "djb2",
+	serialize: JSON.stringify
 }) {
-  const min = options?.min ?? 0;
-  const max = options?.max ?? 10;
-  const algorithm = options?.algorithm ?? "djb2" /* DJB2 */;
-  const serialize = options?.serialize ?? JSON.stringify;
-  const hashLength = options?.hashLength ?? 16;
-  if (min >= max) {
-    throw new Error(
-      `Invalid range: min (${min}) must be less than max (${max})`
-    );
-  }
-  const objectString = serialize(object);
-  const hashery = new Hashery();
-  return hashery.toNumberSync(objectString, {
-    algorithm,
-    min,
-    max,
-    hashLength
-  });
+	const min = options?.min ?? 0;
+	const max = options?.max ?? 10;
+	const algorithm = options?.algorithm ?? "djb2";
+	const serialize = options?.serialize ?? JSON.stringify;
+	const hashLength = options?.hashLength ?? 16;
+	if (min >= max) throw new Error(`Invalid range: min (${min}) must be less than max (${max})`);
+	const objectString = serialize(object);
+	return new Hashery().toNumberSync(objectString, {
+		algorithm,
+		min,
+		max,
+		hashLength
+	});
 }
-
-// src/memoize.ts
+//#endregion
+//#region src/memoize.ts
 function wrapSync(function_, options) {
-  const { ttl, keyPrefix, cache, serialize } = options;
-  return (...arguments_) => {
-    let cacheKey = createWrapKey(function_, arguments_, {
-      keyPrefix,
-      serialize
-    });
-    if (options.createKey) {
-      cacheKey = options.createKey(function_, arguments_, options);
-    }
-    let value = cache.get(cacheKey);
-    if (value === void 0) {
-      try {
-        value = function_(...arguments_);
-        cache.set(cacheKey, value, ttl);
-      } catch (error) {
-        cache.emit("error", error);
-        if (options.cacheErrors) {
-          cache.set(cacheKey, error, ttl);
-        }
-      }
-    }
-    return value;
-  };
+	const { ttl, keyPrefix, cache, serialize } = options;
+	return (...arguments_) => {
+		let cacheKey = createWrapKey(function_, arguments_, {
+			keyPrefix,
+			serialize
+		});
+		if (options.createKey) cacheKey = options.createKey(function_, arguments_, options);
+		let value = cache.get(cacheKey);
+		if (value === void 0) try {
+			value = function_(...arguments_);
+			cache.set(cacheKey, value, ttl);
+		} catch (error) {
+			cache.emit("error", error);
+			if (options.cacheErrors) cache.set(cacheKey, error, ttl);
+		}
+		return value;
+	};
+}
+/**
+* Synchronous counterpart to {@link getOrSet}. Reads `key` from the cache and, on a miss, computes
+* the value with `function_`, stores it, and returns it.
+*
+* Unlike {@link getOrSet} there is no request coalescing: synchronous code runs to completion
+* without interleaving, so concurrent callers cannot stampede the setter the way they can with an
+* async cache.
+*
+* Error handling mirrors {@link getOrSet}: errors are emitted on the cache's `error` event, can be
+* cached when `cacheErrors` is set, and can be rethrown selectively via `throwErrors` (`true` for
+* any error, `"function"` for setter errors, `"store"` for cache read/write errors).
+*
+* @param key - The cache key, or a function that derives it from the resolved options.
+* @param function_ - The setter invoked on a cache miss to compute the value.
+* @param options - The {@link GetOrSetSyncOptions} including the target synchronous cache.
+* @returns The cached or freshly computed value, or `undefined`.
+*/
+function getOrSetSync(key, function_, options) {
+	const keyString = typeof key === "function" ? key(options) : key;
+	let value;
+	try {
+		value = options.cache.get(keyString);
+	} catch (error) {
+		options.cache.emit("error", error);
+		if (options.throwErrors === true || options.throwErrors === "store") throw error;
+	}
+	if (value === void 0) try {
+		try {
+			value = function_();
+		} catch (error) {
+			throw new ErrorEnvelope(error, "function");
+		}
+		try {
+			options.cache.set(keyString, value, options.ttl);
+		} catch (error) {
+			throw new ErrorEnvelope(error, "store");
+		}
+	} catch (caught) {
+		const errorType = caught instanceof ErrorEnvelope ? caught.context : void 0;
+		const error = caught instanceof ErrorEnvelope ? caught.error : caught;
+		options.cache.emit("error", error);
+		if (options.cacheErrors && errorType === "function") try {
+			options.cache.set(keyString, error, options.ttl);
+		} catch (storeError) {
+			options.cache.emit("error", storeError);
+		}
+		if (options.throwErrors === true || options.throwErrors === errorType) throw error;
+	}
+	return value;
 }
 function createWrapKey(function_, arguments_, options) {
-  const { keyPrefix, serialize } = options || {};
-  if (!keyPrefix) {
-    return `${function_.name}::${hashSync(arguments_, { serialize })}`;
-  }
-  return `${keyPrefix}::${function_.name}::${hashSync(arguments_, { serialize })}`;
+	const { keyPrefix, serialize } = options || {};
+	if (!keyPrefix) return `${function_.name}::${hashSync(arguments_, { serialize })}`;
+	return `${keyPrefix}::${function_.name}::${hashSync(arguments_, { serialize })}`;
 }
-/* v8 ignore next -- @preserve */
+var ErrorEnvelope = class {
+	error;
+	context;
+	constructor(error, context) {
+		this.error = error;
+		this.context = context;
+	}
+};
+var Stats = class {
+	_counters = {
+		hits: 0,
+		misses: 0,
+		gets: 0,
+		sets: 0,
+		deletes: 0,
+		clears: 0,
+		count: 0
+	};
+	_vsize = 0;
+	_ksize = 0;
+	_enabled = false;
+	_lastUpdated;
+	_lastReset;
+	_subscriptions = [];
+	/** Backing store for the public {@link trackedKeys} read-only view. */
+	_trackedKeys = /* @__PURE__ */ new Map();
+	_trackKeys = false;
+	_maxTrackedKeys;
+	constructor(options) {
+		if (options?.enabled) this._enabled = options.enabled;
+		if (options?.trackKeys) this._trackKeys = options.trackKeys;
+		if (options?.maxTrackedKeys !== void 0) this._maxTrackedKeys = options.maxTrackedKeys;
+		if (options?.emitter && options?.eventMap) this.subscribe(options.emitter, options.eventMap);
+	}
+	/**
+	* @returns {boolean} - Whether the stats are enabled
+	*/
+	get enabled() {
+		return this._enabled;
+	}
+	/**
+	* @param {boolean} enabled - Whether to enable the stats
+	*/
+	set enabled(enabled) {
+		this._enabled = enabled;
+	}
+	/**
+	* @returns {boolean} - Whether per-key statistics are tracked
+	*/
+	get trackKeys() {
+		return this._trackKeys;
+	}
+	/**
+	* @param {boolean} trackKeys - Whether to track per-key statistics
+	*/
+	set trackKeys(trackKeys) {
+		this._trackKeys = trackKeys;
+	}
+	/**
+	* @returns {number | undefined} - The cap on unique keys tracked, or
+	* `undefined` when unbounded
+	*/
+	get maxTrackedKeys() {
+		return this._maxTrackedKeys;
+	}
+	/**
+	* @param {number | undefined} maxTrackedKeys - The cap on unique keys
+	* tracked. Set `undefined` for unbounded.
+	*/
+	set maxTrackedKeys(maxTrackedKeys) {
+		this._maxTrackedKeys = maxTrackedKeys;
+	}
+	/**
+	* Per-key statistics, keyed by cache key, holding each key's raw
+	* `hits`/`misses`/`gets`/`sets`/`deletes` counters. Populated by
+	* {@link recordKey} when {@link trackKeys} is enabled; read `trackedKeys.size`
+	* for the number of unique keys currently tracked. The returned map is a
+	* read-only view — mutate per-key stats via {@link recordKey} /
+	* {@link clearKeys} / {@link reset}.
+	* @returns {ReadonlyMap<string, Readonly<KeyCounters>>}
+	* @readonly
+	*/
+	get trackedKeys() {
+		return this._trackedKeys;
+	}
+	/**
+	* @returns {number} - The number of hits
+	* @readonly
+	*/
+	get hits() {
+		return this._counters.hits;
+	}
+	/**
+	* @returns {number} - The number of misses
+	* @readonly
+	*/
+	get misses() {
+		return this._counters.misses;
+	}
+	/**
+	* @returns {number} - The number of gets
+	* @readonly
+	*/
+	get gets() {
+		return this._counters.gets;
+	}
+	/**
+	* @returns {number} - The number of sets
+	* @readonly
+	*/
+	get sets() {
+		return this._counters.sets;
+	}
+	/**
+	* @returns {number} - The number of deletes
+	* @readonly
+	*/
+	get deletes() {
+		return this._counters.deletes;
+	}
+	/**
+	* @returns {number} - The number of clears
+	* @readonly
+	*/
+	get clears() {
+		return this._counters.clears;
+	}
+	/**
+	* @returns {number} - The vsize (value size) of the cache instance
+	* @readonly
+	*/
+	get vsize() {
+		return this._vsize;
+	}
+	/**
+	* @returns {number} - The ksize (key size) of the cache instance
+	* @readonly
+	*/
+	get ksize() {
+		return this._ksize;
+	}
+	/**
+	* @returns {number} - The count of the cache instance
+	* @readonly
+	*/
+	get count() {
+		return this._counters.count;
+	}
+	/**
+	* The ratio of hits to total lookups (hits + misses). Returns `0` when there
+	* have been no lookups.
+	* @returns {number} - A value between 0 and 1
+	* @readonly
+	*/
+	get hitRate() {
+		const total = this._counters.hits + this._counters.misses;
+		return total === 0 ? 0 : this._counters.hits / total;
+	}
+	/**
+	* The ratio of misses to total lookups (hits + misses). Returns `0` when
+	* there have been no lookups.
+	* @returns {number} - A value between 0 and 1
+	* @readonly
+	*/
+	get missRate() {
+		const total = this._counters.hits + this._counters.misses;
+		return total === 0 ? 0 : this._counters.misses / total;
+	}
+	/**
+	* The timestamp (ms since epoch) of the last mutation while enabled, or
+	* `undefined` if there have been none since the last reset.
+	* @returns {number | undefined}
+	* @readonly
+	*/
+	get lastUpdated() {
+		return this._lastUpdated;
+	}
+	/**
+	* The timestamp (ms since epoch) of the last {@link reset}/{@link clear}, or
+	* `undefined` if it has never been reset.
+	* @returns {number | undefined}
+	* @readonly
+	*/
+	get lastReset() {
+		return this._lastReset;
+	}
+	/**
+	* Increment a counter field by `amount` (default `1`). No-op when disabled.
+	* @param {StatField} field - The counter to increment
+	* @param {number} amount - The amount to add (default 1)
+	*/
+	increment(field, amount = 1) {
+		if (!this._enabled) return;
+		this._counters[field] += amount;
+		this.touch();
+	}
+	/**
+	* Decrement a counter field by `amount` (default `1`). No-op when disabled.
+	* @param {StatField} field - The counter to decrement
+	* @param {number} amount - The amount to subtract (default 1)
+	*/
+	decrement(field, amount = 1) {
+		if (!this._enabled) return;
+		this._counters[field] -= amount;
+		this.touch();
+	}
+	incrementHits(amount = 1) {
+		this.increment("hits", amount);
+	}
+	incrementMisses(amount = 1) {
+		this.increment("misses", amount);
+	}
+	incrementGets(amount = 1) {
+		this.increment("gets", amount);
+	}
+	incrementSets(amount = 1) {
+		this.increment("sets", amount);
+	}
+	incrementDeletes(amount = 1) {
+		this.increment("deletes", amount);
+	}
+	incrementClears(amount = 1) {
+		this.increment("clears", amount);
+	}
+	incrementVSize(value) {
+		if (!this._enabled) return;
+		this._vsize += this.roughSizeOfObject(value);
+		this.touch();
+	}
+	decreaseVSize(value) {
+		if (!this._enabled) return;
+		this._vsize = Math.max(0, this._vsize - this.roughSizeOfObject(value));
+		this.touch();
+	}
+	incrementKSize(key) {
+		if (!this._enabled) return;
+		this._ksize += this.roughSizeOfString(key);
+		this.touch();
+	}
+	decreaseKSize(key) {
+		if (!this._enabled) return;
+		this._ksize = Math.max(0, this._ksize - this.roughSizeOfString(key));
+		this.touch();
+	}
+	incrementCount(amount = 1) {
+		this.increment("count", amount);
+	}
+	decreaseCount(amount = 1) {
+		if (!this._enabled) return;
+		this._counters.count = Math.max(0, this._counters.count - amount);
+		this.touch();
+	}
+	setCount(count) {
+		if (!this._enabled) return;
+		this._counters.count = count;
+		this.touch();
+	}
+	roughSizeOfString(value) {
+		return value.length * 2;
+	}
+	roughSizeOfObject(object) {
+		const objectList = [];
+		const stack = [object];
+		let bytes = 0;
+		while (stack.length > 0) {
+			const value = stack.pop();
+			if (typeof value === "boolean") bytes += 4;
+			else if (typeof value === "string") bytes += value.length * 2;
+			else if (typeof value === "number") bytes += 8;
+			else {
+				if (value === null || value === void 0) {
+					bytes += 4;
+					continue;
+				}
+				if (objectList.includes(value)) continue;
+				objectList.push(value);
+				for (const key in value) {
+					bytes += key.length * 2;
+					stack.push(value[key]);
+				}
+			}
+		}
+		return bytes;
+	}
+	/**
+	* Enable stat tracking. Equivalent to setting {@link enabled} to `true`.
+	*/
+	enable() {
+		this._enabled = true;
+	}
+	/**
+	* Disable stat tracking. Equivalent to setting {@link enabled} to `false`.
+	*/
+	disable() {
+		this._enabled = false;
+	}
+	/**
+	* Reset all counters to zero and record the reset timestamp. Alias of
+	* {@link reset}.
+	*/
+	clear() {
+		this.reset();
+	}
+	reset() {
+		this._counters = {
+			hits: 0,
+			misses: 0,
+			gets: 0,
+			sets: 0,
+			deletes: 0,
+			clears: 0,
+			count: 0
+		};
+		this._vsize = 0;
+		this._ksize = 0;
+		this._trackedKeys.clear();
+		this._lastReset = Date.now();
+		this._lastUpdated = void 0;
+	}
+	resetStoreValues() {
+		this._vsize = 0;
+		this._ksize = 0;
+		this._counters.count = 0;
+	}
+	/**
+	* @returns {StatsSnapshot} - A plain-object snapshot of the current stats,
+	* including computed `hitRate`/`missRate` and timestamps.
+	*/
+	toJSON() {
+		return {
+			enabled: this._enabled,
+			hits: this._counters.hits,
+			misses: this._counters.misses,
+			gets: this._counters.gets,
+			sets: this._counters.sets,
+			deletes: this._counters.deletes,
+			clears: this._counters.clears,
+			vsize: this._vsize,
+			ksize: this._ksize,
+			count: this._counters.count,
+			hitRate: this.hitRate,
+			missRate: this.missRate,
+			trackedKeys: this._trackedKeys.size,
+			lastUpdated: this._lastUpdated,
+			lastReset: this._lastReset
+		};
+	}
+	/**
+	* @returns {StatsSnapshot} - A plain-object snapshot of the current stats.
+	* Alias of {@link toJSON}.
+	*/
+	snapshot() {
+		return this.toJSON();
+	}
+	/**
+	* Record an operation against a specific key for per-key statistics. No-op
+	* unless both {@link enabled} and {@link trackKeys} are `true`.
+	* @param {string} key - The cache key the operation touched
+	* @param {KeyStatField} field - The per-key counter to increment
+	* @param {number} amount - The amount to add (default 1)
+	*/
+	recordKey(key, field, amount = 1) {
+		if (!this._enabled || !this._trackKeys) return;
+		let counters = this._trackedKeys.get(key);
+		if (!counters) {
+			counters = {
+				hits: 0,
+				misses: 0,
+				gets: 0,
+				sets: 0,
+				deletes: 0
+			};
+			this._trackedKeys.set(key, counters);
+			this.pruneTrackedKeys(key);
+		}
+		counters[field] += amount;
+		this.touch();
+	}
+	/**
+	* The most-used keys, sorted descending. Sorts by total recorded operations,
+	* or by a single field when `field` is provided. Ties order by key.
+	* @param {number} limit - Maximum entries to return (default 100)
+	* @param {KeyStatField} [field] - Optionally rank by one counter (e.g. "hits")
+	* @returns {StatsKeyEntry[]}
+	*/
+	mostUsedKeys(limit = 100, field) {
+		return this.sortedKeyEntries(field, "desc").slice(0, limit);
+	}
+	/**
+	* The least-used keys, sorted ascending. Sorts by total recorded operations,
+	* or by a single field when `field` is provided. Ties order by key. Note:
+	* only keys that have been recorded at least once can be ranked, and when
+	* {@link maxTrackedKeys} pruning has occurred the true least-used keys may
+	* have been evicted.
+	* @param {number} limit - Maximum entries to return (default 100)
+	* @param {KeyStatField} [field] - Optionally rank by one counter (e.g. "gets")
+	* @returns {StatsKeyEntry[]}
+	*/
+	leastUsedKeys(limit = 100, field) {
+		return this.sortedKeyEntries(field, "asc").slice(0, limit);
+	}
+	/**
+	* @param {string} key - The key to look up
+	* @returns {StatsKeyEntry | undefined} - The per-key statistics, or
+	* `undefined` if the key has not been recorded
+	*/
+	keyStats(key) {
+		const counters = this._trackedKeys.get(key);
+		return counters ? this.toKeyEntry(key, counters) : void 0;
+	}
+	/**
+	* Clear all per-key statistics without touching the aggregate counters.
+	*/
+	clearKeys() {
+		this._trackedKeys.clear();
+	}
+	totalOf(counters) {
+		return counters.hits + counters.misses + counters.gets + counters.sets + counters.deletes;
+	}
+	toKeyEntry(key, counters) {
+		const lookups = counters.hits + counters.misses;
+		return {
+			key,
+			count: this.totalOf(counters),
+			hits: counters.hits,
+			misses: counters.misses,
+			gets: counters.gets,
+			sets: counters.sets,
+			deletes: counters.deletes,
+			hitRate: lookups === 0 ? 0 : counters.hits / lookups
+		};
+	}
+	sortedKeyEntries(field, direction) {
+		const entries = [];
+		for (const [key, counters] of this._trackedKeys) entries.push(this.toKeyEntry(key, counters));
+		const sign = direction === "asc" ? 1 : -1;
+		entries.sort((a, b) => {
+			const valueA = field ? a[field] : a.count;
+			const valueB = field ? b[field] : b.count;
+			if (valueA !== valueB) return (valueA - valueB) * sign;
+			return a.key < b.key ? -1 : 1;
+		});
+		return entries;
+	}
+	/**
+	* When over {@link maxTrackedKeys}, prune the lowest-count keys down to 90%
+	* of the cap (batched so the sort cost amortizes across inserts). The key
+	* that was just recorded is never pruned.
+	*/
+	pruneTrackedKeys(protectedKey) {
+		if (this._maxTrackedKeys === void 0 || this._trackedKeys.size <= this._maxTrackedKeys) return;
+		const target = Math.max(1, Math.floor(this._maxTrackedKeys * .9));
+		const sorted = [...this._trackedKeys.entries()].sort((a, b) => this.totalOf(a[1]) - this.totalOf(b[1]));
+		for (const [key] of sorted) {
+			if (this._trackedKeys.size <= target) break;
+			if (key === protectedKey) continue;
+			this._trackedKeys.delete(key);
+		}
+	}
+	/**
+	* Subscribe to an emitter so that matching events automatically update the
+	* stats. Counting is gated by {@link enabled}, so you may subscribe first and
+	* toggle enablement later. Call {@link unsubscribe} to detach.
+	* @param {StatsEmitter} emitter - The emitter to listen on
+	* @param {StatsEventMap} eventMap - The event-to-stat mapping (e.g.
+	* {@link nodeCacheStatsEventMap} or a custom map)
+	*/
+	subscribe(emitter, eventMap) {
+		for (const [event, action] of Object.entries(eventMap)) {
+			const listener = (...args) => {
+				this.applyEvent(action, args);
+			};
+			emitter.on(event, listener);
+			this._subscriptions.push({
+				emitter,
+				event,
+				listener
+			});
+		}
+	}
+	/**
+	* Detach listeners previously attached via {@link subscribe}. When `emitter`
+	* is provided, only that emitter's listeners are removed; otherwise all are.
+	* @param {StatsEmitter} [emitter] - The emitter to detach from
+	*/
+	unsubscribe(emitter) {
+		const remaining = [];
+		for (const sub of this._subscriptions) {
+			if (emitter && sub.emitter !== emitter) {
+				remaining.push(sub);
+				continue;
+			}
+			(sub.emitter.off ?? sub.emitter.removeListener)?.call(sub.emitter, sub.event, sub.listener);
+		}
+		this._subscriptions = remaining;
+	}
+	applyEvent(action, args) {
+		if (!this._enabled) return;
+		if (typeof action === "function") {
+			action(this, ...args);
+			return;
+		}
+		if (Array.isArray(action)) {
+			for (const field of action) this.increment(field);
+			return;
+		}
+		this.increment(action);
+	}
+	touch() {
+		this._lastUpdated = Date.now();
+	}
+};
 
-// src/index.ts
-
-// src/memory-lru.ts
+//#region src/memory-lru.ts
 var ListNode = class {
-  value;
-  prev = void 0;
-  next = void 0;
-  constructor(value) {
-    this.value = value;
-  }
+	value;
+	prev = void 0;
+	next = void 0;
+	constructor(value) {
+		this.value = value;
+	}
 };
 var DoublyLinkedList = class {
-  head = void 0;
-  tail = void 0;
-  nodesMap = /* @__PURE__ */ new Map();
-  // Add a new node to the front (most recently used)
-  addToFront(value) {
-    const newNode = new ListNode(value);
-    if (this.head) {
-      newNode.next = this.head;
-      this.head.prev = newNode;
-      this.head = newNode;
-    } else {
-      this.head = this.tail = newNode;
-    }
-    this.nodesMap.set(value, newNode);
-  }
-  // Move an existing node to the front (most recently used)
-  moveToFront(value) {
-    const node = this.nodesMap.get(value);
-    if (!node || this.head === node) {
-      return;
-    }
-    if (node.prev) {
-      node.prev.next = node.next;
-    }
-    if (node.next) {
-      node.next.prev = node.prev;
-    }
-    if (node === this.tail) {
-      this.tail = node.prev;
-    }
-    node.prev = void 0;
-    node.next = this.head;
-    if (this.head) {
-      this.head.prev = node;
-    }
-    this.head = node;
-    this.tail ??= node;
-  }
-  // Get the oldest node (tail)
-  getOldest() {
-    return this.tail ? this.tail.value : void 0;
-  }
-  // Remove the oldest node (tail)
-  removeOldest() {
-    if (!this.tail) {
-      return void 0;
-    }
-    const oldValue = this.tail.value;
-    if (this.tail.prev) {
-      this.tail = this.tail.prev;
-      this.tail.next = void 0;
-    } else {
-      this.head = this.tail = void 0;
-    }
-    this.nodesMap.delete(oldValue);
-    return oldValue;
-  }
-  // Remove a specific node by value
-  remove(value) {
-    const node = this.nodesMap.get(value);
-    if (!node) {
-      return false;
-    }
-    if (node.prev) {
-      node.prev.next = node.next;
-    } else {
-      this.head = node.next;
-      if (this.head) {
-        this.head.prev = void 0;
-      }
-    }
-    if (node.next) {
-      node.next.prev = node.prev;
-    } else {
-      this.tail = node.prev;
-      if (this.tail) {
-        this.tail.next = void 0;
-      }
-    }
-    this.nodesMap.delete(value);
-    return true;
-  }
-  get size() {
-    return this.nodesMap.size;
-  }
+	head = void 0;
+	tail = void 0;
+	nodesMap = /* @__PURE__ */ new Map();
+	addToFront(value) {
+		const newNode = new ListNode(value);
+		if (this.head) {
+			newNode.next = this.head;
+			this.head.prev = newNode;
+			this.head = newNode;
+		} else this.head = this.tail = newNode;
+		this.nodesMap.set(value, newNode);
+	}
+	moveToFront(value) {
+		const node = this.nodesMap.get(value);
+		if (!node || this.head === node) return;
+		/* v8 ignore next -- @preserve */
+		if (node.prev) node.prev.next = node.next;
+		/* v8 ignore next -- @preserve */
+		if (node.next) node.next.prev = node.prev;
+		/* v8 ignore next -- @preserve */
+		if (node === this.tail) this.tail = node.prev;
+		node.prev = void 0;
+		node.next = this.head;
+		/* v8 ignore next -- @preserve */
+		if (this.head) this.head.prev = node;
+		this.head = node;
+		this.tail ??= node;
+	}
+	getOldest() {
+		/* v8 ignore next -- @preserve */
+		return this.tail ? this.tail.value : void 0;
+	}
+	removeOldest() {
+		/* v8 ignore next -- @preserve */
+		if (!this.tail) return;
+		const oldValue = this.tail.value;
+		/* v8 ignore next -- @preserve */
+		if (this.tail.prev) {
+			this.tail = this.tail.prev;
+			this.tail.next = void 0;
+		} else
+ /* v8 ignore next -- @preserve */
+		this.head = this.tail = void 0;
+		this.nodesMap.delete(oldValue);
+		return oldValue;
+	}
+	remove(value) {
+		const node = this.nodesMap.get(value);
+		if (!node) return false;
+		if (node.prev) node.prev.next = node.next;
+		else {
+			this.head = node.next;
+			if (this.head) this.head.prev = void 0;
+		}
+		if (node.next) node.next.prev = node.prev;
+		else {
+			this.tail = node.prev;
+			if (this.tail) this.tail.next = void 0;
+		}
+		this.nodesMap.delete(value);
+		return true;
+	}
+	get size() {
+		return this.nodesMap.size;
+	}
 };
-
-// src/index.ts
-var defaultStoreHashSize = 16;
-var maximumMapSize = 16777216;
+const maximumMapSize = 16777216;
 var CacheableMemory = class extends Hookified {
-  _lru = new DoublyLinkedList();
-  _storeHashSize = defaultStoreHashSize;
-  _storeHashAlgorithm = HashAlgorithm.DJB2;
-  // Default is djb2Hash
-  _store = Array.from(
-    { length: this._storeHashSize },
-    () => /* @__PURE__ */ new Map()
-  );
-  _ttl;
-  // Turned off by default
-  _useClone = true;
-  // Turned on by default
-  _lruSize = 0;
-  // Turned off by default
-  _checkInterval = 0;
-  // Turned off by default
-  _interval = 0;
-  // Turned off by default
-  /**
-   * @constructor
-   * @param {CacheableMemoryOptions} [options] - The options for the CacheableMemory
-   */
-  constructor(options) {
-    super();
-    if (options?.ttl) {
-      this.setTtl(options.ttl);
-    }
-    if (options?.useClone !== void 0) {
-      this._useClone = options.useClone;
-    }
-    if (options?.storeHashSize && options.storeHashSize > 0) {
-      this._storeHashSize = options.storeHashSize;
-    }
-    if (options?.lruSize) {
-      if (options.lruSize > maximumMapSize) {
-        this.emit(
-          "error",
-          new Error(
-            `LRU size cannot be larger than ${maximumMapSize} due to Map limitations.`
-          )
-        );
-      } else {
-        this._lruSize = options.lruSize;
-      }
-    }
-    if (options?.checkInterval) {
-      this._checkInterval = options.checkInterval;
-    }
-    if (options?.storeHashAlgorithm) {
-      this._storeHashAlgorithm = options.storeHashAlgorithm;
-    }
-    this._store = Array.from(
-      { length: this._storeHashSize },
-      () => /* @__PURE__ */ new Map()
-    );
-    this.startIntervalCheck();
-  }
-  /**
-   * Gets the time-to-live
-   * @returns {number|string|undefined} - The time-to-live in miliseconds or a human-readable format. If undefined, it will not have a time-to-live.
-   */
-  get ttl() {
-    return this._ttl;
-  }
-  /**
-   * Sets the time-to-live
-   * @param {number|string|undefined} value - The time-to-live in miliseconds or a human-readable format (example '1s' = 1 second, '1h' = 1 hour). If undefined, it will not have a time-to-live.
-   */
-  set ttl(value) {
-    this.setTtl(value);
-  }
-  /**
-   * Gets whether to use clone
-   * @returns {boolean} - If true, it will clone the value before returning it. If false, it will return the value directly. Default is true.
-   */
-  get useClone() {
-    return this._useClone;
-  }
-  /**
-   * Sets whether to use clone
-   * @param {boolean} value - If true, it will clone the value before returning it. If false, it will return the value directly. Default is true.
-   */
-  set useClone(value) {
-    this._useClone = value;
-  }
-  /**
-   * Gets the size of the LRU cache
-   * @returns {number} - The size of the LRU cache. If set to 0, it will not use LRU cache. Default is 0. If you are using LRU then the limit is based on Map() size 17mm.
-   */
-  get lruSize() {
-    return this._lruSize;
-  }
-  /**
-   * Sets the size of the LRU cache
-   * @param {number} value - The size of the LRU cache. If set to 0, it will not use LRU cache. Default is 0. If you are using LRU then the limit is based on Map() size 17mm.
-   */
-  set lruSize(value) {
-    if (value > maximumMapSize) {
-      this.emit(
-        "error",
-        new Error(
-          `LRU size cannot be larger than ${maximumMapSize} due to Map limitations.`
-        )
-      );
-      return;
-    }
-    this._lruSize = value;
-    if (this._lruSize === 0) {
-      this._lru = new DoublyLinkedList();
-      return;
-    }
-    this.lruResize();
-  }
-  /**
-   * Gets the check interval
-   * @returns {number} - The interval to check for expired items. If set to 0, it will not check for expired items. Default is 0.
-   */
-  get checkInterval() {
-    return this._checkInterval;
-  }
-  /**
-   * Sets the check interval
-   * @param {number} value - The interval to check for expired items. If set to 0, it will not check for expired items. Default is 0.
-   */
-  set checkInterval(value) {
-    this._checkInterval = value;
-  }
-  /**
-   * Gets the size of the cache
-   * @returns {number} - The size of the cache
-   */
-  get size() {
-    let size = 0;
-    for (const store of this._store) {
-      size += store.size;
-    }
-    return size;
-  }
-  /**
-   * Gets the number of hash stores
-   * @returns {number} - The number of hash stores
-   */
-  get storeHashSize() {
-    return this._storeHashSize;
-  }
-  /**
-   * Sets the number of hash stores. This will recreate the store and all data will be cleared
-   * @param {number} value - The number of hash stores
-   */
-  set storeHashSize(value) {
-    if (value === this._storeHashSize) {
-      return;
-    }
-    this._storeHashSize = value;
-    this._store = Array.from(
-      { length: this._storeHashSize },
-      () => /* @__PURE__ */ new Map()
-    );
-  }
-  /**
-   * Gets the store hash algorithm
-   * @returns {HashAlgorithm | StoreHashAlgorithmFunction} - The store hash algorithm
-   */
-  get storeHashAlgorithm() {
-    return this._storeHashAlgorithm;
-  }
-  /**
-   * Sets the store hash algorithm. This will recreate the store and all data will be cleared
-   * @param {HashAlgorithm | HashAlgorithmFunction} value - The store hash algorithm
-   */
-  set storeHashAlgorithm(value) {
-    this._storeHashAlgorithm = value;
-  }
-  /**
-   * Gets the keys
-   * @returns {IterableIterator<string>} - The keys
-   */
-  get keys() {
-    const keys = [];
-    for (const store of this._store) {
-      for (const key of store.keys()) {
-        const item = store.get(key);
-        if (item && this.hasExpired(item)) {
-          store.delete(key);
-          this.lruRemove(key);
-          continue;
-        }
-        keys.push(key);
-      }
-    }
-    return keys.values();
-  }
-  /**
-   * Gets the items
-   * @returns {IterableIterator<CacheableStoreItem>} - The items
-   */
-  get items() {
-    const items = [];
-    for (const store of this._store) {
-      for (const item of store.values()) {
-        if (this.hasExpired(item)) {
-          store.delete(item.key);
-          this.lruRemove(item.key);
-          continue;
-        }
-        items.push(item);
-      }
-    }
-    return items.values();
-  }
-  /**
-   * Gets the store
-   * @returns {Array<Map<string, CacheableStoreItem>>} - The store
-   */
-  get store() {
-    return this._store;
-  }
-  /**
-   * Gets the value of the key
-   * @param {string} key - The key to get the value
-   * @returns {T | undefined} - The value of the key
-   */
-  get(key) {
-    const store = this.getStore(key);
-    const item = store.get(key);
-    if (!item) {
-      return void 0;
-    }
-    if (item.expires && Date.now() > item.expires) {
-      store.delete(key);
-      this.lruRemove(key);
-      return void 0;
-    }
-    this.lruMoveToFront(key);
-    if (!this._useClone) {
-      return item.value;
-    }
-    return this.clone(item.value);
-  }
-  /**
-   * Gets the values of the keys
-   * @param {string[]} keys - The keys to get the values
-   * @returns {T[]} - The values of the keys
-   */
-  getMany(keys) {
-    const result = [];
-    for (const key of keys) {
-      result.push(this.get(key));
-    }
-    return result;
-  }
-  /**
-   * Gets the raw value of the key
-   * @param {string} key - The key to get the value
-   * @returns {CacheableStoreItem | undefined} - The raw value of the key
-   */
-  getRaw(key) {
-    const store = this.getStore(key);
-    const item = store.get(key);
-    if (!item) {
-      return void 0;
-    }
-    if (item.expires && item.expires && Date.now() > item.expires) {
-      store.delete(key);
-      this.lruRemove(key);
-      return void 0;
-    }
-    this.lruMoveToFront(key);
-    return item;
-  }
-  /**
-   * Gets the raw values of the keys
-   * @param {string[]} keys - The keys to get the values
-   * @returns {CacheableStoreItem[]} - The raw values of the keys
-   */
-  getManyRaw(keys) {
-    const result = [];
-    for (const key of keys) {
-      result.push(this.getRaw(key));
-    }
-    return result;
-  }
-  /**
-   * Sets the value of the key
-   * @param {string} key - The key to set the value
-   * @param {any} value - The value to set
-   * @param {number|string|SetOptions} [ttl] - Time to Live - If you set a number it is miliseconds, if you set a string it is a human-readable.
-   * If you want to set expire directly you can do that by setting the expire property in the SetOptions.
-   * If you set undefined, it will use the default time-to-live. If both are undefined then it will not have a time-to-live.
-   * @returns {void}
-   */
-  set(key, value, ttl) {
-    const store = this.getStore(key);
-    let expires;
-    if (ttl !== void 0 || this._ttl !== void 0) {
-      if (typeof ttl === "object") {
-        if (ttl.expire) {
-          expires = typeof ttl.expire === "number" ? ttl.expire : ttl.expire.getTime();
-        }
-        if (ttl.ttl) {
-          const finalTtl = shorthandToTime(ttl.ttl);
-          if (finalTtl !== void 0) {
-            expires = finalTtl;
-          }
-        }
-      } else {
-        const finalTtl = shorthandToTime(ttl ?? this._ttl);
-        if (finalTtl !== void 0) {
-          expires = finalTtl;
-        }
-      }
-    }
-    if (this._lruSize > 0) {
-      if (store.has(key)) {
-        this.lruMoveToFront(key);
-      } else {
-        this.lruAddToFront(key);
-        if (this._lru.size > this._lruSize) {
-          const oldestKey = this._lru.getOldest();
-          if (oldestKey) {
-            this._lru.removeOldest();
-            this.delete(oldestKey);
-          }
-        }
-      }
-    }
-    const item = { key, value, expires };
-    store.set(key, item);
-  }
-  /**
-   * Sets the values of the keys
-   * @param {CacheableItem[]} items - The items to set
-   * @returns {void}
-   */
-  setMany(items) {
-    for (const item of items) {
-      this.set(item.key, item.value, item.ttl);
-    }
-  }
-  /**
-   * Checks if the key exists
-   * @param {string} key - The key to check
-   * @returns {boolean} - If true, the key exists. If false, the key does not exist.
-   */
-  has(key) {
-    const item = this.get(key);
-    return Boolean(item);
-  }
-  /**
-   * @function hasMany
-   * @param {string[]} keys - The keys to check
-   * @returns {boolean[]} - If true, the key exists. If false, the key does not exist.
-   */
-  hasMany(keys) {
-    const result = [];
-    for (const key of keys) {
-      const item = this.get(key);
-      result.push(Boolean(item));
-    }
-    return result;
-  }
-  /**
-   * Take will get the key and delete the entry from cache
-   * @param {string} key - The key to take
-   * @returns {T | undefined} - The value of the key
-   */
-  take(key) {
-    const item = this.get(key);
-    if (!item) {
-      return void 0;
-    }
-    this.delete(key);
-    return item;
-  }
-  /**
-   * TakeMany will get the keys and delete the entries from cache
-   * @param {string[]} keys - The keys to take
-   * @returns {T[]} - The values of the keys
-   */
-  takeMany(keys) {
-    const result = [];
-    for (const key of keys) {
-      result.push(this.take(key));
-    }
-    return result;
-  }
-  /**
-   * Delete the key
-   * @param {string} key - The key to delete
-   * @returns {void}
-   */
-  delete(key) {
-    const store = this.getStore(key);
-    store.delete(key);
-    this.lruRemove(key);
-  }
-  /**
-   * Delete the keys
-   * @param {string[]} keys - The keys to delete
-   * @returns {void}
-   */
-  deleteMany(keys) {
-    for (const key of keys) {
-      this.delete(key);
-    }
-  }
-  /**
-   * Clear the cache
-   * @returns {void}
-   */
-  clear() {
-    this._store = Array.from(
-      { length: this._storeHashSize },
-      () => /* @__PURE__ */ new Map()
-    );
-    this._lru = new DoublyLinkedList();
-  }
-  /**
-   * Get the store based on the key (internal use)
-   * @param {string} key - The key to get the store
-   * @returns {CacheableHashStore} - The store
-   */
-  getStore(key) {
-    const hash2 = this.getKeyStoreHash(key);
-    this._store[hash2] ||= /* @__PURE__ */ new Map();
-    return this._store[hash2];
-  }
-  /**
-   * Hash the key for which store to go to (internal use)
-   * @param {string} key - The key to hash
-   * Available algorithms are: SHA256, SHA1, MD5, and djb2Hash.
-   * @returns {number} - The hashed key as a number
-   */
-  getKeyStoreHash(key) {
-    if (this._store.length === 1) {
-      return 0;
-    }
-    if (typeof this._storeHashAlgorithm === "function") {
-      return this._storeHashAlgorithm(key, this._storeHashSize);
-    }
-    const storeHashSize = this._storeHashSize - 1;
-    const hash2 = hashToNumberSync(key, {
-      min: 0,
-      max: storeHashSize,
-      algorithm: this._storeHashAlgorithm
-    });
-    return hash2;
-  }
-  /**
-   * Clone the value. This is for internal use
-   * @param {any} value - The value to clone
-   * @returns {any} - The cloned value
-   */
-  // biome-ignore lint/suspicious/noExplicitAny: type format
-  clone(value) {
-    if (this.isPrimitive(value)) {
-      return value;
-    }
-    return structuredClone(value);
-  }
-  /**
-   * Add to the front of the LRU cache. This is for internal use
-   * @param {string} key - The key to add to the front
-   * @returns {void}
-   */
-  lruAddToFront(key) {
-    if (this._lruSize === 0) {
-      return;
-    }
-    this._lru.addToFront(key);
-  }
-  /**
-   * Move to the front of the LRU cache. This is for internal use
-   * @param {string} key - The key to move to the front
-   * @returns {void}
-   */
-  lruMoveToFront(key) {
-    if (this._lruSize === 0) {
-      return;
-    }
-    this._lru.moveToFront(key);
-  }
-  /**
-   * Remove a key from the LRU cache. This is for internal use
-   * @param {string} key - The key to remove
-   * @returns {void}
-   */
-  lruRemove(key) {
-    if (this._lruSize === 0) {
-      return;
-    }
-    this._lru.remove(key);
-  }
-  /**
-   * Resize the LRU cache. This is for internal use.
-   * @returns {void}
-   */
-  lruResize() {
-    while (this._lru.size > this._lruSize) {
-      const oldestKey = this._lru.getOldest();
-      if (oldestKey) {
-        this._lru.removeOldest();
-        this.delete(oldestKey);
-      }
-    }
-  }
-  /**
-   * Check for expiration. This is for internal use
-   * @returns {void}
-   */
-  checkExpiration() {
-    for (const store of this._store) {
-      for (const item of store.values()) {
-        if (item.expires && Date.now() > item.expires) {
-          store.delete(item.key);
-          this.lruRemove(item.key);
-        }
-      }
-    }
-  }
-  /**
-   * Start the interval check. This is for internal use
-   * @returns {void}
-   */
-  startIntervalCheck() {
-    if (this._checkInterval > 0) {
-      if (this._interval) {
-        clearInterval(this._interval);
-      }
-      this._interval = setInterval(() => {
-        this.checkExpiration();
-      }, this._checkInterval).unref();
-    }
-  }
-  /**
-   * Stop the interval check. This is for internal use
-   * @returns {void}
-   */
-  stopIntervalCheck() {
-    if (this._interval) {
-      clearInterval(this._interval);
-    }
-    this._interval = 0;
-    this._checkInterval = 0;
-  }
-  /**
-   * Wrap the function for caching
-   * @param {Function} function_ - The function to wrap
-   * @param {Object} [options] - The options to wrap
-   * @returns {Function} - The wrapped function
-   */
-  // biome-ignore lint/suspicious/noExplicitAny: type format
-  wrap(function_, options) {
-    const wrapOptions = {
-      ttl: options?.ttl ?? this._ttl,
-      keyPrefix: options?.keyPrefix,
-      createKey: options?.createKey,
-      cache: this
-    };
-    return wrapSync(function_, wrapOptions);
-  }
-  // biome-ignore lint/suspicious/noExplicitAny: type format
-  isPrimitive(value) {
-    const result = false;
-    if (value === null || value === void 0) {
-      return true;
-    }
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      return true;
-    }
-    return result;
-  }
-  setTtl(ttl) {
-    if (typeof ttl === "string" || ttl === void 0) {
-      this._ttl = ttl;
-    } else if (ttl > 0) {
-      this._ttl = ttl;
-    } else {
-      this._ttl = void 0;
-    }
-  }
-  hasExpired(item) {
-    if (item.expires && Date.now() > item.expires) {
-      return true;
-    }
-    return false;
-  }
+	_lru = new DoublyLinkedList();
+	_storeHashSize = 16;
+	_storeHashAlgorithm = HashAlgorithm.DJB2;
+	_store = Array.from({ length: this._storeHashSize }, () => /* @__PURE__ */ new Map());
+	_ttl;
+	_maxTtl;
+	_useClone = true;
+	_lruSize = 0;
+	_checkInterval = 0;
+	_interval = 0;
+	_stats = new Stats({ enabled: false });
+	/**
+	* @constructor
+	* @param {CacheableMemoryOptions} [options] - The options for the CacheableMemory
+	*/
+	constructor(options) {
+		super();
+		if (options?.ttl) this.setTtl(options.ttl);
+		if (options?.maxTtl !== void 0) this.setMaxTtl(options.maxTtl);
+		if (options?.useClone !== void 0) this._useClone = options.useClone;
+		if (options?.stats) this._stats.enabled = options.stats;
+		if (options?.storeHashSize && options.storeHashSize > 0) this._storeHashSize = options.storeHashSize;
+		if (options?.lruSize) if (options.lruSize > 16777216) this.emit("error", /* @__PURE__ */ new Error(`LRU size cannot be larger than ${maximumMapSize} due to Map limitations.`));
+		else this._lruSize = options.lruSize;
+		if (options?.checkInterval) this._checkInterval = options.checkInterval;
+		if (options?.storeHashAlgorithm) this._storeHashAlgorithm = options.storeHashAlgorithm;
+		this._store = Array.from({ length: this._storeHashSize }, () => /* @__PURE__ */ new Map());
+		this.startIntervalCheck();
+	}
+	/**
+	* Gets the time-to-live
+	* @returns {number|string|undefined} - The time-to-live in miliseconds or a human-readable format. If undefined, it will not have a time-to-live.
+	*/
+	get ttl() {
+		return this._ttl;
+	}
+	/**
+	* Sets the time-to-live
+	* @param {number|string|undefined} value - The time-to-live in miliseconds or a human-readable format (example '1s' = 1 second, '1h' = 1 hour). If undefined, it will not have a time-to-live.
+	*/
+	set ttl(value) {
+		this.setTtl(value);
+	}
+	/**
+	* Gets the maximum time-to-live. When set, any TTL that exceeds this value is capped to maxTtl.
+	* Entries with no TTL will also be capped to maxTtl. Default is `undefined` (no maximum).
+	* @returns {number|string|undefined} - The maximum TTL in milliseconds, human-readable format, or undefined.
+	*/
+	get maxTtl() {
+		return this._maxTtl;
+	}
+	/**
+	* Sets the maximum time-to-live. When set, any TTL that exceeds this value is capped to maxTtl.
+	* Entries with no TTL will also be capped to maxTtl.
+	* @param {number|string|undefined} value - The maximum TTL in milliseconds or human-readable format (e.g. '1s', '1h'). If undefined, no maximum is enforced.
+	*/
+	set maxTtl(value) {
+		this.setMaxTtl(value);
+	}
+	/**
+	* Gets whether to use clone
+	* @returns {boolean} - If true, it will clone the value before returning it. If false, it will return the value directly. Default is true.
+	*/
+	get useClone() {
+		return this._useClone;
+	}
+	/**
+	* Sets whether to use clone
+	* @param {boolean} value - If true, it will clone the value before returning it. If false, it will return the value directly. Default is true.
+	*/
+	set useClone(value) {
+		this._useClone = value;
+	}
+	/**
+	* Gets the size of the LRU cache
+	* @returns {number} - The size of the LRU cache. If set to 0, it will not use LRU cache. Default is 0. If you are using LRU then the limit is based on Map() size 17mm.
+	*/
+	get lruSize() {
+		return this._lruSize;
+	}
+	/**
+	* Sets the size of the LRU cache
+	* @param {number} value - The size of the LRU cache. If set to 0, it will not use LRU cache. Default is 0. If you are using LRU then the limit is based on Map() size 17mm.
+	*/
+	set lruSize(value) {
+		if (value > 16777216) {
+			this.emit("error", /* @__PURE__ */ new Error(`LRU size cannot be larger than ${maximumMapSize} due to Map limitations.`));
+			return;
+		}
+		this._lruSize = value;
+		if (this._lruSize === 0) {
+			this._lru = new DoublyLinkedList();
+			return;
+		}
+		this.lruResize();
+	}
+	/**
+	* Gets the check interval
+	* @returns {number} - The interval to check for expired items. If set to 0, it will not check for expired items. Default is 0.
+	*/
+	get checkInterval() {
+		return this._checkInterval;
+	}
+	/**
+	* Sets the check interval
+	* @param {number} value - The interval to check for expired items. If set to 0, it will not check for expired items. Default is 0.
+	*/
+	set checkInterval(value) {
+		this._checkInterval = value;
+	}
+	/**
+	* Gets the size of the cache
+	* @returns {number} - The size of the cache
+	*/
+	get size() {
+		let size = 0;
+		for (const store of this._store) size += store.size;
+		return size;
+	}
+	/**
+	* Gets the statistics of the cache. Statistics track aggregate counters such as `hits`, `misses`,
+	* `gets`, `sets`, `deletes`, `clears`, `count`, `ksize`, and `vsize`. They are disabled by default;
+	* enable them via the `stats` option or by setting `cache.stats.enabled = true`.
+	* @returns {Stats} - The statistics for this CacheableMemory instance
+	*/
+	get stats() {
+		return this._stats;
+	}
+	/**
+	* Gets the number of hash stores
+	* @returns {number} - The number of hash stores
+	*/
+	get storeHashSize() {
+		return this._storeHashSize;
+	}
+	/**
+	* Sets the number of hash stores. This will recreate the store and all data will be cleared
+	* @param {number} value - The number of hash stores
+	*/
+	set storeHashSize(value) {
+		if (value === this._storeHashSize) return;
+		this._storeHashSize = value;
+		this._store = Array.from({ length: this._storeHashSize }, () => /* @__PURE__ */ new Map());
+		if (this._stats.enabled) this._stats.resetStoreValues();
+	}
+	/**
+	* Gets the store hash algorithm
+	* @returns {HashAlgorithm | StoreHashAlgorithmFunction} - The store hash algorithm
+	*/
+	get storeHashAlgorithm() {
+		return this._storeHashAlgorithm;
+	}
+	/**
+	* Sets the store hash algorithm. This will recreate the store and all data will be cleared
+	* @param {HashAlgorithm | HashAlgorithmFunction} value - The store hash algorithm
+	*/
+	set storeHashAlgorithm(value) {
+		this._storeHashAlgorithm = value;
+	}
+	/**
+	* Gets the keys
+	* @returns {IterableIterator<string>} - The keys
+	*/
+	get keys() {
+		const keys = [];
+		for (const store of this._store) for (const key of store.keys()) {
+			const item = store.get(key);
+			if (item && this.hasExpired(item)) {
+				this.recordExpiration(item);
+				store.delete(key);
+				this.lruRemove(key);
+				continue;
+			}
+			keys.push(key);
+		}
+		return keys.values();
+	}
+	/**
+	* Gets the items
+	* @returns {IterableIterator<CacheableStoreItem>} - The items
+	*/
+	get items() {
+		const items = [];
+		for (const store of this._store) for (const item of store.values()) {
+			if (this.hasExpired(item)) {
+				this.recordExpiration(item);
+				store.delete(item.key);
+				this.lruRemove(item.key);
+				continue;
+			}
+			items.push(item);
+		}
+		return items.values();
+	}
+	/**
+	* Gets the store
+	* @returns {Array<Map<string, CacheableStoreItem>>} - The store
+	*/
+	get store() {
+		return this._store;
+	}
+	/**
+	* Gets the value of the key
+	* @param {string} key - The key to get the value
+	* @returns {T | undefined} - The value of the key
+	*/
+	get(key) {
+		this.hookSync("BEFORE_GET", key);
+		const store = this.getStore(key);
+		const item = store.get(key);
+		if (!item) {
+			this.recordRead(false);
+			this.hookSync("AFTER_GET", {
+				key,
+				result: void 0
+			});
+			return;
+		}
+		if (item.expires && Date.now() > item.expires) {
+			this.recordExpiration(item);
+			store.delete(key);
+			this.lruRemove(key);
+			this.recordRead(false);
+			this.hookSync("AFTER_GET", {
+				key,
+				result: void 0
+			});
+			return;
+		}
+		this.lruMoveToFront(key);
+		let result;
+		if (!this._useClone) result = item.value;
+		else result = this.clone(item.value);
+		this.recordRead(true);
+		this.hookSync("AFTER_GET", {
+			key,
+			result
+		});
+		return result;
+	}
+	/**
+	* Gets the values of the keys
+	* @param {string[]} keys - The keys to get the values
+	* @returns {T[]} - The values of the keys
+	*/
+	getMany(keys) {
+		this.hookSync("BEFORE_GET_MANY", keys);
+		const result = [];
+		for (const key of keys) result.push(this.get(key));
+		this.hookSync("AFTER_GET_MANY", {
+			keys,
+			result
+		});
+		return result;
+	}
+	/**
+	* Gets the raw value of the key
+	* @param {string} key - The key to get the value
+	* @returns {CacheableStoreItem | undefined} - The raw value of the key
+	*/
+	getRaw(key) {
+		const store = this.getStore(key);
+		const item = store.get(key);
+		if (!item) {
+			this.recordRead(false);
+			return;
+		}
+		if (item.expires && Date.now() > item.expires) {
+			this.recordExpiration(item);
+			store.delete(key);
+			this.lruRemove(key);
+			this.recordRead(false);
+			return;
+		}
+		this.lruMoveToFront(key);
+		this.recordRead(true);
+		return item;
+	}
+	/**
+	* Gets the raw values of the keys
+	* @param {string[]} keys - The keys to get the values
+	* @returns {CacheableStoreItem[]} - The raw values of the keys
+	*/
+	getManyRaw(keys) {
+		const result = [];
+		for (const key of keys) result.push(this.getRaw(key));
+		return result;
+	}
+	/**
+	* Sets the value of the key
+	* @param {string} key - The key to set the value
+	* @param {any} value - The value to set
+	* @param {number|string|SetOptions} [ttl] - Time to Live - If you set a number it is miliseconds, if you set a string it is a human-readable.
+	* If you want to set expire directly you can do that by setting the expire property in the SetOptions.
+	* If you set undefined, it will use the default time-to-live. If both are undefined then it will not have a time-to-live.
+	* @returns {void}
+	*/
+	set(key, value, ttl) {
+		const hookItem = {
+			key,
+			value,
+			ttl
+		};
+		this.hookSync("BEFORE_SET", hookItem);
+		const store = this.getStore(hookItem.key);
+		let expires;
+		const effectiveTtl = hookItem.ttl;
+		if (effectiveTtl !== void 0 || this._ttl !== void 0) if (typeof effectiveTtl === "object") {
+			if (effectiveTtl.expire) expires = typeof effectiveTtl.expire === "number" ? effectiveTtl.expire : effectiveTtl.expire.getTime();
+			if (effectiveTtl.ttl) {
+				const finalTtl = shorthandToTime(effectiveTtl.ttl);
+				/* v8 ignore next -- @preserve */
+				if (finalTtl !== void 0) expires = finalTtl;
+			}
+		} else {
+			const finalTtl = shorthandToTime(effectiveTtl ?? this._ttl);
+			/* v8 ignore next -- @preserve */
+			if (finalTtl !== void 0) expires = finalTtl;
+		}
+		if (this._maxTtl !== void 0) {
+			const maxExpires = shorthandToTime(this._maxTtl);
+			if (expires === void 0) expires = maxExpires;
+			else if (expires > maxExpires) expires = maxExpires;
+		}
+		if (this._lruSize > 0) if (store.has(hookItem.key)) this.lruMoveToFront(hookItem.key);
+		else {
+			this.lruAddToFront(hookItem.key);
+			if (this._lru.size > this._lruSize) {
+				const oldestKey = this._lru.getOldest();
+				/* v8 ignore next -- @preserve */
+				if (oldestKey) {
+					this._lru.removeOldest();
+					this.delete(oldestKey);
+				}
+			}
+		}
+		if (this._stats.enabled) {
+			const existing = store.get(hookItem.key);
+			if (existing) this._stats.decreaseVSize(existing.value);
+			else {
+				this._stats.incrementKSize(hookItem.key);
+				this._stats.incrementCount();
+			}
+			this._stats.incrementVSize(hookItem.value);
+			this._stats.incrementSets();
+		}
+		const item = {
+			key: hookItem.key,
+			value: hookItem.value,
+			expires
+		};
+		store.set(hookItem.key, item);
+		this.hookSync("AFTER_SET", hookItem);
+	}
+	/**
+	* Sets the values of the keys
+	* @param {CacheableItem[]} items - The items to set
+	* @returns {void}
+	*/
+	setMany(items) {
+		this.hookSync("BEFORE_SET_MANY", items);
+		for (const item of items) this.set(item.key, item.value, item.ttl);
+		this.hookSync("AFTER_SET_MANY", items);
+	}
+	/**
+	* Checks if the key exists
+	* @param {string} key - The key to check
+	* @returns {boolean} - If true, the key exists. If false, the key does not exist.
+	*/
+	has(key) {
+		const item = this.get(key);
+		return Boolean(item);
+	}
+	/**
+	* @function hasMany
+	* @param {string[]} keys - The keys to check
+	* @returns {boolean[]} - If true, the key exists. If false, the key does not exist.
+	*/
+	hasMany(keys) {
+		const result = [];
+		for (const key of keys) {
+			const item = this.get(key);
+			result.push(Boolean(item));
+		}
+		return result;
+	}
+	/**
+	* Take will get the key and delete the entry from cache
+	* @param {string} key - The key to take
+	* @returns {T | undefined} - The value of the key
+	*/
+	take(key) {
+		const item = this.get(key);
+		if (!item) return;
+		this.delete(key);
+		return item;
+	}
+	/**
+	* TakeMany will get the keys and delete the entries from cache
+	* @param {string[]} keys - The keys to take
+	* @returns {T[]} - The values of the keys
+	*/
+	takeMany(keys) {
+		const result = [];
+		for (const key of keys) result.push(this.take(key));
+		return result;
+	}
+	/**
+	* Delete the key
+	* @param {string} key - The key to delete
+	* @returns {void}
+	*/
+	delete(key) {
+		this.hookSync("BEFORE_DELETE", key);
+		const store = this.getStore(key);
+		if (this._stats.enabled) {
+			const item = store.get(key);
+			if (item) {
+				this._stats.decreaseKSize(key);
+				this._stats.decreaseVSize(item.value);
+				this._stats.decreaseCount();
+				this._stats.incrementDeletes();
+			}
+		}
+		store.delete(key);
+		this.lruRemove(key);
+		this.hookSync("AFTER_DELETE", key);
+	}
+	/**
+	* Delete the keys
+	* @param {string[]} keys - The keys to delete
+	* @returns {void}
+	*/
+	deleteMany(keys) {
+		this.hookSync("BEFORE_DELETE_MANY", keys);
+		for (const key of keys) this.delete(key);
+		this.hookSync("AFTER_DELETE_MANY", keys);
+	}
+	/**
+	* Clear the cache
+	* @returns {void}
+	*/
+	clear() {
+		this.hookSync("BEFORE_CLEAR");
+		this._store = Array.from({ length: this._storeHashSize }, () => /* @__PURE__ */ new Map());
+		this._lru = new DoublyLinkedList();
+		if (this._stats.enabled) {
+			this._stats.resetStoreValues();
+			this._stats.incrementClears();
+		}
+		this.hookSync("AFTER_CLEAR");
+	}
+	/**
+	* Get the store based on the key (internal use)
+	* @param {string} key - The key to get the store
+	* @returns {CacheableHashStore} - The store
+	*/
+	getStore(key) {
+		const hash = this.getKeyStoreHash(key);
+		this._store[hash] ||= /* @__PURE__ */ new Map();
+		return this._store[hash];
+	}
+	/**
+	* Hash the key for which store to go to (internal use)
+	* @param {string} key - The key to hash
+	* Available algorithms are: SHA256, SHA1, MD5, and djb2Hash.
+	* @returns {number} - The hashed key as a number
+	*/
+	getKeyStoreHash(key) {
+		if (this._store.length === 1) return 0;
+		if (typeof this._storeHashAlgorithm === "function") return this._storeHashAlgorithm(key, this._storeHashSize);
+		return hashToNumberSync(key, {
+			min: 0,
+			max: this._storeHashSize - 1,
+			algorithm: this._storeHashAlgorithm
+		});
+	}
+	/**
+	* Clone the value. This is for internal use
+	* @param {any} value - The value to clone
+	* @returns {any} - The cloned value
+	*/
+	clone(value) {
+		if (this.isPrimitive(value)) return value;
+		return structuredClone(value);
+	}
+	/**
+	* Add to the front of the LRU cache. This is for internal use
+	* @param {string} key - The key to add to the front
+	* @returns {void}
+	*/
+	lruAddToFront(key) {
+		if (this._lruSize === 0) return;
+		this._lru.addToFront(key);
+	}
+	/**
+	* Move to the front of the LRU cache. This is for internal use
+	* @param {string} key - The key to move to the front
+	* @returns {void}
+	*/
+	lruMoveToFront(key) {
+		if (this._lruSize === 0) return;
+		this._lru.moveToFront(key);
+	}
+	/**
+	* Remove a key from the LRU cache. This is for internal use
+	* @param {string} key - The key to remove
+	* @returns {void}
+	*/
+	lruRemove(key) {
+		if (this._lruSize === 0) return;
+		this._lru.remove(key);
+	}
+	/**
+	* Resize the LRU cache. This is for internal use.
+	* @returns {void}
+	*/
+	lruResize() {
+		while (this._lru.size > this._lruSize) {
+			const oldestKey = this._lru.getOldest();
+			/* v8 ignore next -- @preserve */
+			if (oldestKey) {
+				this._lru.removeOldest();
+				this.delete(oldestKey);
+			}
+		}
+	}
+	/**
+	* Check for expiration. This is for internal use
+	* @returns {void}
+	*/
+	checkExpiration() {
+		for (const store of this._store) for (const item of store.values()) if (item.expires && Date.now() > item.expires) {
+			this.recordExpiration(item);
+			store.delete(item.key);
+			this.lruRemove(item.key);
+		}
+	}
+	/**
+	* Start the interval check. This is for internal use
+	* @returns {void}
+	*/
+	startIntervalCheck() {
+		if (this._checkInterval > 0) {
+			/* v8 ignore next -- @preserve */
+			if (this._interval)
+ /* v8 ignore next -- @preserve */
+			clearInterval(this._interval);
+			this._interval = setInterval(() => {
+				this.checkExpiration();
+			}, this._checkInterval).unref();
+		}
+	}
+	/**
+	* Stop the interval check. This is for internal use
+	* @returns {void}
+	*/
+	stopIntervalCheck() {
+		/* v8 ignore next -- @preserve */
+		if (this._interval) clearInterval(this._interval);
+		this._interval = 0;
+		this._checkInterval = 0;
+	}
+	/**
+	* Wrap the function for caching
+	* @param {Function} function_ - The function to wrap
+	* @param {Object} [options] - The options to wrap
+	* @returns {Function} - The wrapped function
+	*/
+	wrap(function_, options) {
+		return wrapSync(function_, {
+			ttl: options?.ttl ?? this._ttl,
+			keyPrefix: options?.keyPrefix,
+			createKey: options?.createKey,
+			cache: this
+		});
+	}
+	/**
+	* Gets the value of the key, or computes and stores it on a cache miss. This is the synchronous
+	* cache-aside helper: if the key is present its value is returned, otherwise `function_` is
+	* invoked, its result is stored, and that result is returned.
+	*
+	* The value is stored using `options.ttl`, falling back to the instance default `ttl`. Because
+	* the cache is synchronous there is no request coalescing — concurrent callers cannot stampede
+	* the setter the way they can with an async cache.
+	* @param {GetOrSetSyncKey} key - The key to get or set. Can also be a function that returns the key.
+	* @param {() => T} function_ - The function that computes the value on a cache miss.
+	* @param {GetOrSetFunctionOptions} [options] - Options such as `ttl`, `cacheErrors`, and `throwErrors`.
+	* @returns {T | undefined} - The cached or freshly computed value
+	*/
+	getOrSet(key, function_, options) {
+		return getOrSetSync(key, function_, {
+			cache: this,
+			ttl: options?.ttl ?? this._ttl,
+			cacheErrors: options?.cacheErrors,
+			throwErrors: options?.throwErrors
+		});
+	}
+	/**
+	* Records a single read against the statistics counters. Each read increments `gets` and either
+	* `hits` or `misses`. No-op when statistics are disabled. This is for internal use.
+	* @param {boolean} hit - Whether the read found a (non-expired) value
+	* @returns {void}
+	*/
+	recordRead(hit) {
+		if (!this._stats.enabled) return;
+		if (hit) this._stats.incrementHits();
+		else this._stats.incrementMisses();
+		this._stats.incrementGets();
+	}
+	/**
+	* Decrements the size statistics (`count`, `ksize`, and `vsize`) for an entry that is being removed
+	* because it expired. Expirations are not counted as `deletes` since they are not user-initiated.
+	* No-op when statistics are disabled. This is for internal use.
+	* @param {CacheableStoreItem} item - The expired item being removed from the store
+	* @returns {void}
+	*/
+	recordExpiration(item) {
+		if (!this._stats.enabled) return;
+		this._stats.decreaseKSize(item.key);
+		this._stats.decreaseVSize(item.value);
+		this._stats.decreaseCount();
+	}
+	isPrimitive(value) {
+		const result = false;
+		/* v8 ignore next -- @preserve */
+		if (value === null || value === void 0) return true;
+		if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return true;
+		return result;
+	}
+	setTtl(ttl) {
+		if (typeof ttl === "string" || ttl === void 0) this._ttl = ttl;
+		else if (ttl > 0) this._ttl = ttl;
+		else this._ttl = void 0;
+	}
+	setMaxTtl(maxTtl) {
+		if (typeof maxTtl === "string" || maxTtl === void 0) this._maxTtl = maxTtl;
+		else if (maxTtl > 0) this._maxTtl = maxTtl;
+		else this._maxTtl = void 0;
+	}
+	hasExpired(item) {
+		if (item.expires && Date.now() > item.expires) return true;
+		return false;
+	}
 };
-/* v8 ignore next -- @preserve */
 
 /// <reference types="../types/index.d.ts" />
 
@@ -96738,414 +96755,383 @@ const stringify = (value, replacer, space) => {
   }
 };
 
-// src/index.ts
 var FlatCache = class extends Hookified {
-  _cache = new CacheableMemory();
-  _cacheDir = ".cache";
-  _cacheId = "cache1";
-  _persistInterval = 0;
-  _persistTimer;
-  _changesSinceLastSave = false;
-  _parse = parse;
-  _stringify = stringify;
-  constructor(options) {
-    super();
-    if (options) {
-      this._cache = new CacheableMemory({
-        ttl: options.ttl,
-        useClone: options.useClone,
-        lruSize: options.lruSize,
-        checkInterval: options.expirationInterval
-      });
-    }
-    if (options?.cacheDir) {
-      this._cacheDir = options.cacheDir;
-    }
-    if (options?.cacheId) {
-      this._cacheId = options.cacheId;
-    }
-    if (options?.persistInterval) {
-      this._persistInterval = options.persistInterval;
-      this.startAutoPersist();
-    }
-    if (options?.deserialize) {
-      this._parse = options.deserialize;
-    }
-    if (options?.serialize) {
-      this._stringify = options.serialize;
-    }
-  }
-  /**
-   * The cache object
-   * @property cache
-   * @type {CacheableMemory}
-   */
-  get cache() {
-    return this._cache;
-  }
-  /**
-   * The cache directory
-   * @property cacheDir
-   * @type {String}
-   * @default '.cache'
-   */
-  get cacheDir() {
-    return this._cacheDir;
-  }
-  /**
-   * Set the cache directory
-   * @property cacheDir
-   * @type {String}
-   * @default '.cache'
-   */
-  set cacheDir(value) {
-    this._cacheDir = value;
-  }
-  /**
-   * The cache id
-   * @property cacheId
-   * @type {String}
-   * @default 'cache1'
-   */
-  get cacheId() {
-    return this._cacheId;
-  }
-  /**
-   * Set the cache id
-   * @property cacheId
-   * @type {String}
-   * @default 'cache1'
-   */
-  set cacheId(value) {
-    this._cacheId = value;
-  }
-  /**
-   * The flag to indicate if there are changes since the last save
-   * @property changesSinceLastSave
-   * @type {Boolean}
-   * @default false
-   */
-  get changesSinceLastSave() {
-    return this._changesSinceLastSave;
-  }
-  /**
-   * The interval to persist the cache to disk. 0 means no timed persistence
-   * @property persistInterval
-   * @type {Number}
-   * @default 0
-   */
-  get persistInterval() {
-    return this._persistInterval;
-  }
-  /**
-   * Set the interval to persist the cache to disk. 0 means no timed persistence
-   * @property persistInterval
-   * @type {Number}
-   * @default 0
-   */
-  set persistInterval(value) {
-    this._persistInterval = value;
-  }
-  /**
-   * Load a cache identified by the given Id. If the element does not exists, then initialize an empty
-   * cache storage. If specified `cacheDir` will be used as the directory to persist the data to. If omitted
-   * then the cache module directory `.cacheDir` will be used instead
-   *
-   * @method load
-   * @param cacheId {String} the id of the cache, would also be used as the name of the file cache
-   * @param cacheDir {String} directory for the cache entry
-   */
-  load(cacheId, cacheDir) {
-    try {
-      const filePath = path__default.resolve(
-        `${cacheDir ?? this._cacheDir}/${cacheId ?? this._cacheId}`
-      );
-      this.loadFile(filePath);
-      this.emit("load" /* LOAD */);
-    } catch (error) {
-      this.emit("error" /* ERROR */, error);
-    }
-  }
-  /**
-   * Load the cache from the provided file
-   * @method loadFile
-   * @param  {String} pathToFile the path to the file containing the info for the cache
-   */
-  loadFile(pathToFile) {
-    if (fs__default.existsSync(pathToFile)) {
-      const data = fs__default.readFileSync(pathToFile, "utf8");
-      const items = this._parse(data);
-      if (Array.isArray(items)) {
-        for (const item of items) {
-          if (item && typeof item === "object" && "key" in item) {
-            if (item.expires) {
-              this._cache.set(item.key, item.value, { expire: item.expires });
-            } else if (item.timestamp) {
-              this._cache.set(item.key, item.value, { expire: item.timestamp });
-            } else {
-              this._cache.set(item.key, item.value);
-            }
-          }
-        }
-      } else {
-        for (const key of Object.keys(items)) {
-          const item = items[key];
-          if (item && typeof item === "object" && "key" in item) {
-            this._cache.set(item.key, item.value, {
-              expire: item.expires
-            });
-          } else {
-            if (item && typeof item === "object" && item.timestamp) {
-              this._cache.set(key, item, { expire: item.timestamp });
-            } else {
-              this._cache.set(key, item);
-            }
-          }
-        }
-      }
-      this._changesSinceLastSave = true;
-    }
-  }
-  loadFileStream(pathToFile, onProgress, onEnd, onError) {
-    if (fs__default.existsSync(pathToFile)) {
-      const stats = fs__default.statSync(pathToFile);
-      const total = stats.size;
-      let loaded = 0;
-      let streamData = "";
-      const readStream = fs__default.createReadStream(pathToFile, { encoding: "utf8" });
-      readStream.on("data", (chunk) => {
-        loaded += chunk.length;
-        streamData += chunk;
-        onProgress(loaded, total);
-      });
-      readStream.on("end", () => {
-        const items = this._parse(streamData);
-        for (const key of Object.keys(items)) {
-          this._cache.set(items[key].key, items[key].value, {
-            expire: items[key].expires
-          });
-        }
-        this._changesSinceLastSave = true;
-        onEnd();
-      });
-      readStream.on("error", (error) => {
-        this.emit("error" /* ERROR */, error);
-        if (onError) {
-          onError(error);
-        }
-      });
-    } else {
-      const error = new Error(`Cache file ${pathToFile} does not exist`);
-      this.emit("error" /* ERROR */, error);
-      if (onError) {
-        onError(error);
-      }
-    }
-  }
-  /**
-   * Returns the entire persisted object
-   * @method all
-   * @returns {*}
-   */
-  all() {
-    const result = {};
-    const items = [...this._cache.items];
-    for (const item of items) {
-      result[item.key] = item.value;
-    }
-    return result;
-  }
-  /**
-   * Returns an array with all the items in the cache { key, value, expires }
-   * @method items
-   * @returns {Array}
-   */
-  // biome-ignore lint/suspicious/noExplicitAny: cache items can store any value
-  get items() {
-    return [...this._cache.items];
-  }
-  /**
-   * Returns the path to the file where the cache is persisted
-   * @method cacheFilePath
-   * @returns {String}
-   */
-  get cacheFilePath() {
-    return path__default.resolve(`${this._cacheDir}/${this._cacheId}`);
-  }
-  /**
-   * Returns the path to the cache directory
-   * @method cacheDirPath
-   * @returns {String}
-   */
-  get cacheDirPath() {
-    return path__default.resolve(this._cacheDir);
-  }
-  /**
-   * Returns an array with all the keys in the cache
-   * @method keys
-   * @returns {Array}
-   */
-  keys() {
-    return [...this._cache.keys];
-  }
-  /**
-   * (Legacy) set key method. This method will be deprecated in the future
-   * @method setKey
-   * @param key {string} the key to set
-   * @param value {object} the value of the key. Could be any object that can be serialized with JSON.stringify
-   */
-  // biome-ignore lint/suspicious/noExplicitAny: type format
-  setKey(key, value, ttl) {
-    this.set(key, value, ttl);
-  }
-  /**
-   * Sets a key to a given value
-   * @method set
-   * @param key {string} the key to set
-   * @param value {object} the value of the key. Could be any object that can be serialized with JSON.stringify
-   * @param [ttl] {number} the time to live in milliseconds
-   */
-  // biome-ignore lint/suspicious/noExplicitAny: type format
-  set(key, value, ttl) {
-    this._cache.set(key, value, ttl);
-    this._changesSinceLastSave = true;
-  }
-  /**
-   * (Legacy) Remove a given key from the cache. This method will be deprecated in the future
-   * @method removeKey
-   * @param key {String} the key to remove from the object
-   */
-  removeKey(key) {
-    this.delete(key);
-  }
-  /**
-   * Remove a given key from the cache
-   * @method delete
-   * @param key {String} the key to remove from the object
-   */
-  delete(key) {
-    this._cache.delete(key);
-    this._changesSinceLastSave = true;
-    this.emit("delete" /* DELETE */, key);
-  }
-  /**
-   * (Legacy) Return the value of the provided key. This method will be deprecated in the future
-   * @method getKey<T>
-   * @param key {String} the name of the key to retrieve
-   * @returns {*} at T the value from the key
-   */
-  getKey(key) {
-    return this.get(key);
-  }
-  /**
-   * Return the value of the provided key
-   * @method get<T>
-   * @param key {String} the name of the key to retrieve
-   * @returns {*} at T the value from the key
-   */
-  get(key) {
-    return this._cache.get(key);
-  }
-  /**
-   * Clear the cache and save the state to disk
-   * @method clear
-   */
-  clear() {
-    try {
-      this._cache.clear();
-      this._changesSinceLastSave = true;
-      this.save();
-      this.emit("clear" /* CLEAR */);
-    } catch (error) {
-      this.emit("error" /* ERROR */, error);
-    }
-  }
-  /**
-   * Save the state of the cache identified by the docId to disk
-   * as a JSON structure
-   * @method save
-   */
-  save(force = false) {
-    try {
-      if (this._changesSinceLastSave || force) {
-        const filePath = this.cacheFilePath;
-        const items = [...this._cache.items];
-        const data = this._stringify(items);
-        if (!fs__default.existsSync(this._cacheDir)) {
-          fs__default.mkdirSync(this._cacheDir, { recursive: true });
-        }
-        fs__default.writeFileSync(filePath, data);
-        this._changesSinceLastSave = false;
-        this.emit("save" /* SAVE */);
-      }
-    } catch (error) {
-      this.emit("error" /* ERROR */, error);
-    }
-  }
-  /**
-   * Remove the file where the cache is persisted
-   * @method removeCacheFile
-   * @return {Boolean} true or false if the file was successfully deleted
-   */
-  removeCacheFile() {
-    try {
-      if (fs__default.existsSync(this.cacheFilePath)) {
-        fs__default.rmSync(this.cacheFilePath);
-        return true;
-      }
-    } catch (error) {
-      this.emit("error" /* ERROR */, error);
-    }
-    return false;
-  }
-  /**
-   * Destroy the cache. This will remove the directory, file, and memory cache
-   * @method destroy
-   * @param [includeCacheDir=false] {Boolean} if true, the cache directory will be removed
-   * @return {undefined}
-   */
-  destroy(includeCacheDirectory = false) {
-    try {
-      this._cache.clear();
-      this.stopAutoPersist();
-      if (includeCacheDirectory) {
-        fs__default.rmSync(this.cacheDirPath, { recursive: true, force: true });
-      } else {
-        fs__default.rmSync(this.cacheFilePath, { recursive: true, force: true });
-      }
-      this._changesSinceLastSave = false;
-      this.emit("destroy" /* DESTROY */);
-    } catch (error) {
-      this.emit("error" /* ERROR */, error);
-    }
-  }
-  /**
-   * Start the auto persist interval
-   * @method startAutoPersist
-   */
-  startAutoPersist() {
-    if (this._persistInterval > 0) {
-      if (this._persistTimer) {
-        clearInterval(this._persistTimer);
-        this._persistTimer = void 0;
-      }
-      this._persistTimer = setInterval(() => {
-        this.save();
-      }, this._persistInterval);
-    }
-  }
-  /**
-   * Stop the auto persist interval
-   * @method stopAutoPersist
-   */
-  stopAutoPersist() {
-    if (this._persistTimer) {
-      clearInterval(this._persistTimer);
-      this._persistTimer = void 0;
-    }
-  }
+	_cache = new CacheableMemory();
+	_cacheDir = ".cache";
+	_cacheId = "cache1";
+	_persistInterval = 0;
+	_persistTimer;
+	_changesSinceLastSave = false;
+	_parse = parse;
+	_stringify = stringify;
+	constructor(options) {
+		super();
+		if (options) this._cache = new CacheableMemory({
+			ttl: options.ttl,
+			useClone: options.useClone,
+			lruSize: options.lruSize,
+			checkInterval: options.expirationInterval
+		});
+		if (options?.cacheDir) this._cacheDir = options.cacheDir;
+		if (options?.cacheId) this._cacheId = options.cacheId;
+		if (options?.persistInterval) {
+			this._persistInterval = options.persistInterval;
+			this.startAutoPersist();
+		}
+		if (options?.deserialize) this._parse = options.deserialize;
+		if (options?.serialize) this._stringify = options.serialize;
+	}
+	/**
+	* The cache object
+	* @property cache
+	* @type {CacheableMemory}
+	*/
+	get cache() {
+		return this._cache;
+	}
+	/**
+	* The cache directory
+	* @property cacheDir
+	* @type {String}
+	* @default '.cache'
+	*/
+	get cacheDir() {
+		return this._cacheDir;
+	}
+	/**
+	* Set the cache directory
+	* @property cacheDir
+	* @type {String}
+	* @default '.cache'
+	*/
+	set cacheDir(value) {
+		this._cacheDir = value;
+	}
+	/**
+	* The cache id
+	* @property cacheId
+	* @type {String}
+	* @default 'cache1'
+	*/
+	get cacheId() {
+		return this._cacheId;
+	}
+	/**
+	* Set the cache id
+	* @property cacheId
+	* @type {String}
+	* @default 'cache1'
+	*/
+	set cacheId(value) {
+		this._cacheId = value;
+	}
+	/**
+	* The flag to indicate if there are changes since the last save
+	* @property changesSinceLastSave
+	* @type {Boolean}
+	* @default false
+	*/
+	get changesSinceLastSave() {
+		return this._changesSinceLastSave;
+	}
+	/**
+	* The interval to persist the cache to disk. 0 means no timed persistence
+	* @property persistInterval
+	* @type {Number}
+	* @default 0
+	*/
+	get persistInterval() {
+		return this._persistInterval;
+	}
+	/**
+	* Set the interval to persist the cache to disk. 0 means no timed persistence
+	* @property persistInterval
+	* @type {Number}
+	* @default 0
+	*/
+	set persistInterval(value) {
+		this._persistInterval = value;
+	}
+	/**
+	* Load a cache identified by the given Id. If the element does not exists, then initialize an empty
+	* cache storage. If specified `cacheDir` will be used as the directory to persist the data to. If omitted
+	* then the cache module directory `.cacheDir` will be used instead
+	*
+	* @method load
+	* @param cacheId {String} the id of the cache, would also be used as the name of the file cache
+	* @param cacheDir {String} directory for the cache entry
+	*/
+	load(cacheId, cacheDir) {
+		try {
+			const filePath = path$1.resolve(`${cacheDir ?? this._cacheDir}/${cacheId ?? this._cacheId}`);
+			this.loadFile(filePath);
+			this.emit("load");
+		} catch (error) {
+			/* v8 ignore next -- @preserve */
+			this.emit("error", error);
+		}
+	}
+	/**
+	* Load the cache from the provided file
+	* @method loadFile
+	* @param  {String} pathToFile the path to the file containing the info for the cache
+	*/
+	loadFile(pathToFile) {
+		if (fs$1.existsSync(pathToFile)) {
+			const data = fs$1.readFileSync(pathToFile, "utf8");
+			const items = this._parse(data);
+			if (Array.isArray(items)) {
+				for (const item of items) if (item && typeof item === "object" && "key" in item) if (item.expires) this._cache.set(item.key, item.value, { expire: item.expires });
+				else if (item.timestamp)
+ /* v8 ignore next -- @preserve */
+				this._cache.set(item.key, item.value, { expire: item.timestamp });
+				else this._cache.set(item.key, item.value);
+			} else for (const key of Object.keys(items)) {
+				const item = items[key];
+				/* v8 ignore next -- @preserve */
+				if (item && typeof item === "object" && "key" in item) this._cache.set(item.key, item.value, { expire: item.expires });
+				else if (item && typeof item === "object" && item.timestamp)
+ /* v8 ignore next -- @preserve */
+				this._cache.set(key, item, { expire: item.timestamp });
+				else this._cache.set(key, item);
+			}
+			this._changesSinceLastSave = true;
+		}
+	}
+	loadFileStream(pathToFile, onProgress, onEnd, onError) {
+		if (fs$1.existsSync(pathToFile)) {
+			const total = fs$1.statSync(pathToFile).size;
+			let loaded = 0;
+			let streamData = "";
+			const readStream = fs$1.createReadStream(pathToFile, { encoding: "utf8" });
+			readStream.on("data", (chunk) => {
+				loaded += chunk.length;
+				streamData += chunk;
+				onProgress(loaded, total);
+			});
+			readStream.on("end", () => {
+				const items = this._parse(streamData);
+				for (const key of Object.keys(items)) this._cache.set(items[key].key, items[key].value, { expire: items[key].expires });
+				this._changesSinceLastSave = true;
+				onEnd();
+			});
+			/* v8 ignore next -- @preserve */
+			readStream.on("error", (error) => {
+				this.emit("error", error);
+				if (onError) onError(error);
+			});
+		} else {
+			const error = /* @__PURE__ */ new Error(`Cache file ${pathToFile} does not exist`);
+			this.emit("error", error);
+			/* v8 ignore next -- @preserve */
+			if (onError) onError(error);
+		}
+	}
+	/**
+	* Returns the entire persisted object
+	* @method all
+	* @returns {*}
+	*/
+	all() {
+		const result = {};
+		const items = [...this._cache.items];
+		for (const item of items) result[item.key] = item.value;
+		return result;
+	}
+	/**
+	* Returns an array with all the items in the cache { key, value, expires }
+	* @method items
+	* @returns {Array}
+	*/
+	get items() {
+		return [...this._cache.items];
+	}
+	/**
+	* Returns the path to the file where the cache is persisted
+	* @method cacheFilePath
+	* @returns {String}
+	*/
+	get cacheFilePath() {
+		return path$1.resolve(`${this._cacheDir}/${this._cacheId}`);
+	}
+	/**
+	* Returns the path to the cache directory
+	* @method cacheDirPath
+	* @returns {String}
+	*/
+	get cacheDirPath() {
+		return path$1.resolve(this._cacheDir);
+	}
+	/**
+	* Returns an array with all the keys in the cache
+	* @method keys
+	* @returns {Array}
+	*/
+	keys() {
+		return [...this._cache.keys];
+	}
+	/**
+	* (Legacy) set key method. This method will be deprecated in the future
+	* @method setKey
+	* @param key {string} the key to set
+	* @param value {object} the value of the key. Could be any object that can be serialized with JSON.stringify
+	*/
+	setKey(key, value, ttl) {
+		this.set(key, value, ttl);
+	}
+	/**
+	* Sets a key to a given value
+	* @method set
+	* @param key {string} the key to set
+	* @param value {object} the value of the key. Could be any object that can be serialized with JSON.stringify
+	* @param [ttl] {number} the time to live in milliseconds
+	*/
+	set(key, value, ttl) {
+		this._cache.set(key, value, ttl);
+		this._changesSinceLastSave = true;
+	}
+	/**
+	* (Legacy) Remove a given key from the cache. This method will be deprecated in the future
+	* @method removeKey
+	* @param key {String} the key to remove from the object
+	*/
+	removeKey(key) {
+		this.delete(key);
+	}
+	/**
+	* Remove a given key from the cache
+	* @method delete
+	* @param key {String} the key to remove from the object
+	*/
+	delete(key) {
+		this._cache.delete(key);
+		this._changesSinceLastSave = true;
+		this.emit("delete", key);
+	}
+	/**
+	* (Legacy) Return the value of the provided key. This method will be deprecated in the future
+	* @method getKey<T>
+	* @param key {String} the name of the key to retrieve
+	* @returns {*} at T the value from the key
+	*/
+	getKey(key) {
+		return this.get(key);
+	}
+	/**
+	* Return the value of the provided key
+	* @method get<T>
+	* @param key {String} the name of the key to retrieve
+	* @returns {*} at T the value from the key
+	*/
+	get(key) {
+		return this._cache.get(key);
+	}
+	/**
+	* Clear the cache and save the state to disk
+	* @method clear
+	*/
+	clear() {
+		try {
+			this._cache.clear();
+			this._changesSinceLastSave = true;
+			this.save();
+			this.emit("clear");
+		} catch (error) {
+			/* v8 ignore next -- @preserve */
+			this.emit("error", error);
+		}
+	}
+	/**
+	* Save the state of the cache identified by the docId to disk
+	* as a JSON structure
+	* @method save
+	*/
+	save(force = false) {
+		try {
+			/* v8 ignore next -- @preserve */
+			if (this._changesSinceLastSave || force) {
+				const filePath = this.cacheFilePath;
+				const items = [...this._cache.items];
+				const data = this._stringify(items);
+				if (!fs$1.existsSync(this._cacheDir)) fs$1.mkdirSync(this._cacheDir, { recursive: true });
+				fs$1.writeFileSync(filePath, data);
+				this._changesSinceLastSave = false;
+				this.emit("save");
+			}
+		} catch (error) {
+			/* v8 ignore next -- @preserve */
+			this.emit("error", error);
+		}
+	}
+	/**
+	* Remove the file where the cache is persisted
+	* @method removeCacheFile
+	* @return {Boolean} true or false if the file was successfully deleted
+	*/
+	removeCacheFile() {
+		try {
+			if (fs$1.existsSync(this.cacheFilePath)) {
+				fs$1.rmSync(this.cacheFilePath);
+				return true;
+			}
+		} catch (error) {
+			/* v8 ignore next -- @preserve */
+			this.emit("error", error);
+		}
+		return false;
+	}
+	/**
+	* Destroy the cache. This will remove the directory, file, and memory cache
+	* @method destroy
+	* @param [includeCacheDir=false] {Boolean} if true, the cache directory will be removed
+	* @return {undefined}
+	*/
+	destroy(includeCacheDirectory = false) {
+		try {
+			this._cache.clear();
+			this.stopAutoPersist();
+			if (includeCacheDirectory) fs$1.rmSync(this.cacheDirPath, {
+				recursive: true,
+				force: true
+			});
+			else fs$1.rmSync(this.cacheFilePath, {
+				recursive: true,
+				force: true
+			});
+			this._changesSinceLastSave = false;
+			this.emit("destroy");
+		} catch (error) {
+			/* v8 ignore next -- @preserve */
+			this.emit("error", error);
+		}
+	}
+	/**
+	* Start the auto persist interval
+	* @method startAutoPersist
+	*/
+	startAutoPersist() {
+		/* v8 ignore next -- @preserve */
+		if (this._persistInterval > 0) {
+			if (this._persistTimer) {
+				clearInterval(this._persistTimer);
+				this._persistTimer = void 0;
+			}
+			this._persistTimer = setInterval(() => {
+				this.save();
+			}, this._persistInterval);
+		}
+	}
+	/**
+	* Stop the auto persist interval
+	* @method stopAutoPersist
+	*/
+	stopAutoPersist() {
+		if (this._persistTimer) {
+			clearInterval(this._persistTimer);
+			this._persistTimer = void 0;
+		}
+	}
 };
-/* v8 ignore next -- @preserve */
 
 const getProjectCardsGraphQL = `
   query paginate ($projectId: ID!, $increment: Int = 30, $cursor: String) {
@@ -98084,11 +98070,8 @@ function mingoCmp(a, b, descendArray = false) {
       }
       default: {
         if (typeA !== "object") {
-          const isSameType = a?.constructor === b?.constructor;
-          if (isSameType && hasCustomString(a))
+          if (a?.constructor === b?.constructor && hasCustomString(a))
             return simpleCmp(a.toString(), b.toString());
-          if (neq = simpleCmp(a?.constructor?.name, b?.constructor?.name))
-            return neq;
         }
         const keysA = Object.keys(a).sort();
         const keysB = Object.keys(b).sort();
@@ -98173,9 +98156,6 @@ class HashMap extends Map {
     super.clear();
     this.#keyMap.clear();
   }
-  /**
-   * @returns true if an element in the Map existed and has been removed, or false if the element does not exist.
-   */
   delete(key) {
     if (isPrimitive(key)) return super.delete(key);
     const [masterKey, hash] = this.#unpack(key);
@@ -98186,26 +98166,16 @@ class HashMap extends Map {
     );
     return true;
   }
-  /**
-   * Returns a specified element from the Map object. If the value that is associated to the provided key is an object, then you will get a reference to that object and any change made to that object will effectively modify it inside the Map.
-   * @returns Returns the element associated with the specified key. If no element is associated with the specified key, undefined is returned.
-   */
   get(key) {
     if (isPrimitive(key)) return super.get(key);
     const [masterKey, _] = this.#unpack(key);
     return super.get(masterKey);
   }
-  /**
-   * @returns boolean indicating whether an element with the specified key exists or not.
-   */
   has(key) {
     if (isPrimitive(key)) return super.has(key);
     const [masterKey, _] = this.#unpack(key);
     return super.has(masterKey);
   }
-  /**
-   * Adds a new element with a specified key and value to the Map. If an element with the same key already exists, the element will be updated.
-   */
   set(key, value) {
     if (isPrimitive(key)) return super.set(key, value);
     const [masterKey, hash] = this.#unpack(key);
@@ -98229,6 +98199,13 @@ class HashMap extends Map {
 function assert(condition, msg) {
   if (!condition) throw new MingoError(msg);
 }
+const assertNoProto = (s) => {
+  if (s === "__proto__" || s.startsWith("__proto__.") || s.endsWith(".__proto__") || s.includes(".__proto__.")) {
+    throw new MingoError(
+      `Accessing __proto__ is not allowed in selector: '${s}'.`
+    );
+  }
+};
 function typeOf(v) {
   const t = typeof v;
   switch (t) {
@@ -98254,7 +98231,6 @@ const isNumber = (v) => !Number.isNaN(v) && typeof v === "number";
 const isInteger = Number.isInteger;
 const isArray = Array.isArray;
 const isObject = (v) => typeOf(v) === "object";
-const isObjectLike = (v) => !isPrimitive(v);
 const isDate = (v) => v instanceof Date;
 const isRegExp = (v) => v instanceof RegExp;
 const isFunction = (v) => typeof v === "function";
@@ -98262,10 +98238,15 @@ const isNil = (v) => v === null || v === void 0;
 const truthy = (arg, strict = true) => !!arg || strict && arg === "";
 const isEmpty = (x) => isNil(x) || isString(x) && !x || isArray(x) && x.length === 0 || isObject(x) && Object.keys(x).length === 0;
 const ensureArray = (x) => isArray(x) ? x : [x];
-const has = (obj, ...props) => !!obj && props.every((p) => Object.prototype.hasOwnProperty.call(obj, p));
+const has = (obj, key1, key2 = "", key3 = "") => !!(obj && Object.prototype.hasOwnProperty.call(obj, key1) && (key2 === "" || Object.prototype.hasOwnProperty.call(obj, key2)) && (key3 === "" || Object.prototype.hasOwnProperty.call(obj, key3)));
 const isTypedArray = (v) => typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView(v);
+const isDigits = (s) => {
+  for (let i = 0; i < s.length; i++)
+    if (s.charCodeAt(i) < 48 || s.charCodeAt(i) > 57) return false;
+  return true;
+};
 const cloneDeep = (v, refs) => {
-  if (isNil(v) || isBoolean(v) || isNumber(v) || isString(v)) return v;
+  if (isPrimitive(v)) return v;
   if (isDate(v)) return new Date(v);
   if (isRegExp(v)) return new RegExp(v);
   if (isTypedArray(v)) {
@@ -98344,8 +98325,15 @@ function groupBy(collection, keyFunc) {
   }
   return result;
 }
+const OBJECT_PROTO_PROPS = new Set(
+  Object.getOwnPropertyNames(Object.prototype).filter((s) => s !== "__proto__")
+);
 function getValue(obj, key) {
-  return isObjectLike(obj) ? obj[key] : void 0;
+  if (obj === Object.prototype) return;
+  if (isPrimitive(obj) || Number.isNaN(key)) return;
+  if (isArray(obj)) return obj[Number(key)];
+  if (OBJECT_PROTO_PROPS.has(key) && !has(obj, key)) return;
+  return obj[key];
 }
 function unwrap(arr, depth) {
   if (depth < 1) return arr;
@@ -98353,28 +98341,24 @@ function unwrap(arr, depth) {
   return arr;
 }
 function resolve(obj, selector, options) {
+  assertNoProto(selector);
   if (isScalar(obj)) return obj;
-  const path = options?.pathArray ?? selector.split(".");
-  if (path.length === 1 && !isArray(obj)) {
-    return getValue(obj, path[0]);
-  }
-  if (path.length === 2 && !isArray(obj)) {
-    const first = getValue(obj, path[0]);
-    if (first == null) return void 0;
-    if (!isArray(first)) return getValue(first, path[1]);
-  }
+  if (!selector.includes(".") && !isArray(obj)) return getValue(obj, selector);
   let depth = 0;
-  function resolve2(o, path2) {
+  function resolvePath(o, path) {
     let value = o;
-    for (let i = 0; i < path2.length; i++) {
-      const field = path2[i];
-      const isText = !DIGITS_RE.test(field);
-      if (isText && isArray(value)) {
-        if (i === 0 && depth > 0) break;
+    let begin = 0;
+    let dot = 0;
+    while (dot !== -1) {
+      dot = path.indexOf(".", begin);
+      const field = dot === -1 ? path.substring(begin) : path.substring(begin, dot);
+      const isIndex = isDigits(field);
+      if (!isIndex && isArray(value)) {
+        if (begin === 0 && depth > 0) break;
         depth += 1;
-        const subpath = path2.slice(i);
+        const subpath = path.substring(begin);
         value = value.reduce((acc, item) => {
-          const v = resolve2(item, subpath);
+          const v = resolvePath(item, subpath);
           if (v !== void 0) acc.push(v);
           return acc;
         }, []);
@@ -98383,49 +98367,55 @@ function resolve(obj, selector, options) {
         value = getValue(value, field);
       }
       if (value === void 0) break;
+      begin += field.length + 1;
     }
     return value;
   }
-  const res = resolve2(obj, path);
+  const res = resolvePath(obj, selector);
   return isArray(res) && options?.unwrapArray ? unwrap(res, depth) : res;
 }
 function resolveGraph(obj, selector, options) {
+  if (options?.ignoreProto !== true) {
+    assertNoProto(selector);
+    options = { ...options, ignoreProto: true };
+  }
   const sep = selector.indexOf(".");
   const key = sep == -1 ? selector : selector.substring(0, sep);
   const next = selector.substring(sep + 1);
   const hasNext = sep != -1;
+  const { preserveIndex, preserveKeys } = options;
   if (isArray(obj)) {
-    const isIndex = /^\d+$/.test(key);
-    const arr = isIndex && options?.preserveIndex ? obj.slice() : [];
+    const isIndex = isDigits(key);
+    const arr = isIndex && preserveIndex === "default" ? obj.slice() : [];
     if (isIndex) {
-      const index = parseInt(key);
-      let value2 = getValue(obj, index);
-      if (hasNext) {
-        value2 = resolveGraph(value2, next, options);
-      }
-      if (options?.preserveIndex) {
+      const index = Number(key);
+      let value2 = getValue(obj, key);
+      if (hasNext) value2 = resolveGraph(value2, next, options);
+      if (preserveIndex === "default") {
         arr[index] = value2;
       } else {
         arr.push(value2);
       }
     } else {
-      for (const item of obj) {
-        const value2 = resolveGraph(item, selector, options);
-        if (options?.preserveMissing) {
-          arr.push(value2 == void 0 ? MISSING : value2);
-        } else if (value2 != void 0 || options?.preserveIndex) {
+      for (let i = 0; i < obj.length; i++) {
+        const value2 = resolveGraph(obj[i], selector, options);
+        if (preserveIndex === "missing") {
+          arr.push(value2 ?? MISSING);
+        } else if (value2 !== void 0 || preserveIndex === "default") {
           arr.push(value2);
         }
       }
     }
     return arr;
   }
-  const res = options?.preserveKeys ? { ...obj } : {};
   let value = getValue(obj, key);
   if (hasNext) {
     value = resolveGraph(value, next, options);
   }
-  if (value === void 0) return void 0;
+  const res = preserveKeys ? { ...obj } : {};
+  if (value === void 0) {
+    return preserveIndex === "missing" && isObject(obj) ? res : void 0;
+  }
   res[key] = value;
   return res;
 }
@@ -98439,31 +98429,33 @@ function filterMissing(obj) {
       }
     }
   } else if (isObject(obj)) {
-    for (const k of Object.keys(obj)) {
-      if (has(obj, k)) {
-        filterMissing(obj[k]);
-      }
+    const keys = Object.keys(obj);
+    for (let i = 0; i < keys.length; i++) {
+      filterMissing(obj[keys[i]]);
     }
   }
 }
-const DIGITS_RE = /^\d+$/;
 function walk(obj, selector, fn, options) {
-  const names = selector.split(".");
-  const key = names[0];
-  const next = names.slice(1).join(".");
-  if (names.length === 1) {
-    if (isObject(obj) || isArray(obj) && DIGITS_RE.test(key)) {
-      fn(obj, key);
-    }
+  if (options?.ignoreProto !== true) {
+    assertNoProto(selector);
+    options = { ...options, ignoreProto: true };
+  }
+  if (obj === Object.prototype) return;
+  const dotIndex = selector.indexOf(".");
+  const key = dotIndex === -1 ? selector : selector.substring(0, dotIndex);
+  const next = selector.substring(key.length + 1);
+  if (next.length === 0) {
+    if (isObject(obj) || isArray(obj) && isDigits(key)) fn(obj, key);
   } else {
-    if (options?.buildGraph && isNil(obj[key])) {
-      obj[key] = {};
-    }
+    if (options?.buildGraph && isNil(obj[key])) obj[key] = {};
     const item = obj[key];
     if (!item) return;
-    const isNextArrayIndex = !!(names.length > 1 && DIGITS_RE.test(names[1]));
+    const nextDotIndex = next.indexOf(".");
+    const nextKey = nextDotIndex === -1 ? next : next.substring(0, nextDotIndex);
+    const isNextArrayIndex = isDigits(nextKey);
     if (isArray(item) && options?.descendArray && !isNextArrayIndex) {
-      item.forEach(((e) => walk(e, next, fn, options)));
+      for (let i = 0; i < item.length; i++)
+        walk(item[i], next, fn, options);
     } else {
       walk(item, next, fn, options);
     }
@@ -98480,8 +98472,8 @@ function removeValue(obj, selector, options) {
     selector,
     ((item, key) => {
       if (isArray(item)) {
-        item.splice(parseInt(key), 1);
-      } else if (isObject(item)) {
+        item.splice(Number(key), 1);
+      } else {
         delete item[key];
       }
     }),
@@ -98493,17 +98485,15 @@ function normalize(expr) {
   if (isScalar(expr)) {
     return isRegExp(expr) ? { $regex: expr } : { $eq: expr };
   }
-  if (isObjectLike(expr)) {
-    if (!Object.keys(expr).some(isOperator)) return { $eq: expr };
-    if (isObject(expr) && has(expr, "$regex")) {
-      const newExpr = { ...expr };
-      newExpr["$regex"] = new RegExp(
-        expr["$regex"],
-        expr["$options"]
-      );
-      delete newExpr["$options"];
-      return newExpr;
-    }
+  if (!Object.keys(expr).some(isOperator)) return { $eq: expr };
+  if (isObject(expr) && has(expr, "$regex")) {
+    const newExpr = { ...expr };
+    newExpr["$regex"] = new RegExp(
+      expr["$regex"],
+      expr["$options"]
+    );
+    delete newExpr["$options"];
+    return newExpr;
   }
   return expr;
 }
@@ -98704,10 +98694,9 @@ function computeExpression(obj, expr, options) {
     if (expr === "$$KEEP" || expr === "$$PRUNE" || expr === "$$DESCEND")
       return expr;
     let ctx = options.local.root;
-    const arr = expr.split(".");
-    const dotIdx = expr.indexOf(".");
-    const prefix = dotIdx === -1 ? expr : expr.substring(0, dotIdx);
-    if (SYSTEM_VARS.has(arr[0])) {
+    const dot = expr.indexOf(".");
+    const prefix = dot === -1 ? expr : expr.substring(0, dot);
+    if (SYSTEM_VARS.has(prefix)) {
       switch (prefix) {
         case "$$ROOT":
           break;
@@ -98721,7 +98710,7 @@ function computeExpression(obj, expr, options) {
           ctx = new Date(options.now);
           break;
       }
-      expr = dotIdx === -1 ? "" : expr.substring(dotIdx + 1);
+      expr = dot === -1 ? "" : expr.substring(dot + 1);
     } else if (prefix.length >= 2 && prefix[1] === "$") {
       ctx = Object.assign(
         {},
@@ -98741,7 +98730,11 @@ function computeExpression(obj, expr, options) {
     return expr === "" ? ctx : resolve(ctx, expr);
   }
   if (isArray(expr)) {
-    return expr.map((item) => computeExpression(obj, item, options));
+    const result = new Array(expr.length);
+    for (let i = 0; i < expr.length; i++) {
+      result[i] = computeExpression(obj, expr[i], options);
+    }
+    return result;
   }
   if (isObject(expr)) {
     const keys = Object.keys(expr);
@@ -99039,7 +99032,8 @@ const $addToSet = (coll, expr, options) => unique($push(coll, expr, options));
 const $avg = (coll, expr, options) => {
   const data = $push(coll, expr, options).filter(isNumber);
   if (data.length === 0) return null;
-  const sum = data.reduce((acc, n) => acc + n, 0);
+  let sum = 0;
+  for (let i = 0; i < data.length; i++) sum += data[i];
   return sum / data.length;
 };
 
@@ -99127,25 +99121,30 @@ const $bottom = (coll, expr, options) => {
 const $count$1 = (coll, _expr, _opts) => coll.length;
 
 function stddev(data, sampled = true) {
-  const sum = data.reduce((acc, n) => acc + n, 0);
-  const N = Math.max(data.length, 1);
-  const avg = sum / N;
-  return Math.sqrt(
-    data.reduce((acc, n) => acc + Math.pow(n - avg, 2), 0) / (N - Number(sampled))
-  );
+  let sum = 0;
+  for (let i = 0; i < data.length; i++) sum += data[i];
+  const mean = sum / data.length;
+  let result = 0;
+  for (let i = 0; i < data.length; i++) {
+    const x = data[i] - mean;
+    result += x * x;
+  }
+  return Math.sqrt(result / (data.length - Number(sampled)));
 }
 function covariance(dataset, sampled = true) {
   if (dataset.length < 2) return sampled ? null : 0;
   let meanX = 0;
   let meanY = 0;
-  for (const [x, y] of dataset) {
+  for (let i = 0; i < dataset.length; i++) {
+    const [x, y] = dataset[i];
     meanX += x;
     meanY += y;
   }
   meanX /= dataset.length;
   meanY /= dataset.length;
   let result = 0;
-  for (const [x, y] of dataset) {
+  for (let i = 0; i < dataset.length; i++) {
+    const [x, y] = dataset[i];
     result += (x - meanX) * (y - meanY);
   }
   return result / (dataset.length - Number(sampled));
@@ -99161,16 +99160,6 @@ const $first$1 = (coll, expr, options) => {
   return evalExpr(obj, expr, copts) ?? null;
 };
 
-const INT_OPTS = {
-  int: { int: true },
-  // (-∞, ∞)
-  pos: { min: 1, int: true },
-  // [1, ∞]
-  index: { min: 0, int: true },
-  // [0, ∞]
-  nzero: { min: 0, max: 0, int: true }
-  // non-zero
-};
 const ARR_OPTS = {
   obj: { type: "objects" }
 };
@@ -99189,7 +99178,7 @@ function errExpectString(failOnError, prefix) {
   return null;
 }
 function errExpectNumber(failOnError, name, opts) {
-  const type = opts?.int ? "integer" : "number";
+  const type = opts?.integer ? "integer" : "number";
   const min = opts?.min ?? -Infinity;
   const max = opts?.max ?? Infinity;
   let msg;
@@ -99207,6 +99196,7 @@ function errExpectNumber(failOnError, name, opts) {
   assert(!failOnError, msg);
   return null;
 }
+const errExpectInteger = (failOnError, name, opts) => errExpectNumber(failOnError, name, { ...opts, integer: true });
 function errExpectArray(failOnError, prefix, opts) {
   let suffix = "array";
   if (!isNil(opts?.size) && opts?.size >= 0)
@@ -99223,7 +99213,7 @@ const $firstN$1 = (coll, expr, options) => {
   const m = coll.length;
   const n = evalExpr(copts?.local?.groupId, expr.n, copts);
   if (!isInteger(n) || n < 1)
-    return errExpectNumber(foe, "$firstN 'n'", INT_OPTS.pos);
+    return errExpectInteger(foe, "$firstN 'n'", { min: 1 });
   return $push(m <= n ? coll : coll.slice(0, n), expr.input, options);
 };
 
@@ -99239,27 +99229,24 @@ const $lastN$1 = (coll, expr, options) => {
   const n = evalExpr(copts?.local?.groupId, expr.n, copts);
   const foe = options.failOnError;
   if (!isInteger(n) || n < 1) {
-    return errExpectNumber(foe, "$lastN 'n'", INT_OPTS.pos);
+    return errExpectInteger(foe, "$lastN 'n'", { min: 1 });
   }
   return $push(m <= n ? coll : coll.slice(m - n), expr.input, options);
 };
 
 const $max = (coll, expr, options) => {
-  const items = $push(coll, expr, options).filter((v) => !isNil(v));
-  if (!items.length) return null;
-  return items.reduce((r, v) => compare$1(r, v) >= 0 ? r : v);
+  const items = $push(coll, expr, options).slice().sort(compare$1);
+  const size = items.length;
+  return isNil(items[size - 1]) ? null : items[size - 1];
 };
 
 const $maxN$1 = (coll, expr, options) => {
   const copts = options;
-  const m = coll.length;
   const n = evalExpr(copts?.local?.groupId, expr.n, copts);
   if (!isInteger(n) || n < 1) {
-    return errExpectNumber(options.failOnError, "$maxN 'n'", INT_OPTS.pos);
+    return errExpectInteger(options.failOnError, "$maxN 'n'", { min: 1 });
   }
-  const arr = $push(coll, expr.input, options).filter((o) => !isNil(o));
-  arr.sort((a, b) => -1 * compare$1(a, b));
-  return m <= n ? arr : arr.slice(0, n);
+  return $push(coll, expr.input, options).filter((o) => !isNil(o)).sort(compare$1).slice(-n).reverse();
 };
 
 const $percentile$1 = (coll, expr, options) => {
@@ -99270,27 +99257,30 @@ const $percentile$1 = (coll, expr, options) => {
   const X = $push(coll, expr.input, options).filter(isNumber).sort();
   const centiles = $push(expr.p, "$$CURRENT", options);
   const method = expr.method || "approximate";
-  for (const n of centiles) {
-    if (!isNumber(n) || n < 0 || n > 1) {
+  const output = new Array(centiles.length);
+  for (let i = 0; i < centiles.length; i++) {
+    const p = centiles[i];
+    if (!isNumber(p) || p < 0 || p > 1) {
       return errInvalidArgs(
         options.failOnError,
         "$percentile 'p' must resolve to array of numbers between [0.0, 1.0]"
       );
     }
-  }
-  return centiles.map((p) => {
     const r = p * (X.length - 1) + 1;
     const ri = Math.floor(r);
     const result = r === ri ? X[r - 1] : X[ri - 1] + r % 1 * (X[ri] - X[ri - 1]);
     switch (method) {
       case "exact":
-        return result;
+        output[i] = result;
+        break;
       case "approximate": {
-        const i = findInsertIndex(X, result);
-        return i / X.length >= p ? X[Math.max(i - 1, 0)] : X[i];
+        const pos = findInsertIndex(X, result);
+        output[i] = pos / X.length >= p ? X[Math.max(pos - 1, 0)] : X[pos];
+        break;
       }
     }
-  });
+  }
+  return output;
 };
 
 const $median$1 = (coll, expr, options) => $percentile$1(coll, { ...expr, p: [0.5] }, options)?.pop();
@@ -99307,21 +99297,17 @@ const $mergeObjects$1 = (coll, _expr, _options) => {
 };
 
 const $min = (coll, expr, options) => {
-  const items = $push(coll, expr, options).filter((v) => !isNil(v));
-  if (!items.length) return null;
-  return items.reduce((r, v) => compare$1(r, v) <= 0 ? r : v);
+  const items = $push(coll, expr, options).filter((o) => !isNil(o)).sort(compare$1);
+  return isNil(items[0]) ? null : items[0];
 };
 
 const $minN$1 = (coll, expr, options) => {
   const copts = options;
-  const m = coll.length;
   const n = evalExpr(copts?.local?.groupId, expr.n, copts);
   if (!isInteger(n) || n < 1) {
-    return errExpectNumber(options.failOnError, "$minN 'n'", INT_OPTS.pos);
+    return errExpectInteger(options.failOnError, "$minN 'n'", { min: 1 });
   }
-  const arr = $push(coll, expr.input, options).filter((o) => !isNil(o));
-  arr.sort(compare$1);
-  return m <= n ? arr : arr.slice(0, n);
+  return $push(coll, expr.input, options).filter((o) => !isNil(o)).sort(compare$1).slice(0, n);
 };
 
 const $stdDevPop = (coll, expr, options) => stddev($push(coll, expr, options).filter(isNumber), false);
@@ -99330,8 +99316,10 @@ const $stdDevSamp = (coll, expr, options) => stddev($push(coll, expr, options).f
 
 const $sum = (coll, expr, options) => {
   if (isNumber(expr)) return coll.length * expr;
-  const nums = $push(coll, expr, options).filter(isNumber);
-  return nums.reduce((r, n) => r + n, 0);
+  const nums = $push(coll, expr, options);
+  let res = 0;
+  for (let i = 0; i < nums.length; i++) if (isNumber(nums[i])) res += nums[i];
+  return res;
 };
 
 const $topN = (coll, expr, options) => {
@@ -99536,10 +99524,9 @@ function truncate(num, precision, opts) {
     return errExpectNumber(failOnError, `${name} arg1 <number>`);
   }
   if (!isInteger(precision) || precision < -20 || precision > 100) {
-    return errExpectNumber(failOnError, `${name} arg2 <precision>`, {
+    return errExpectInteger(failOnError, `${name} arg2 <precision>`, {
       min: -20,
-      max: 100,
-      int: true
+      max: 100
     });
   }
   const sign = Math.abs(num) === num ? 1 : -1;
@@ -99559,7 +99546,7 @@ function truncate(num, precision, opts) {
       remainder += 1;
     }
     result = (result * offset + remainder) / offset;
-  } else if (precision < 0) {
+  } else {
     const offset = Math.pow(10, -1 * precision);
     let excess = result % offset;
     result = Math.max(0, result - excess);
@@ -99645,8 +99632,7 @@ const $arrayElemAt = (obj, expr, options) => {
   const foe = options.failOnError;
   const [arr, index] = args;
   if (!isArray(arr)) return errExpectArray(foe, `${OP$d} arg1 <array>`);
-  if (!isInteger(index))
-    return errExpectNumber(foe, `${OP$d} arg2 <index>`, INT_OPTS.int);
+  if (!isInteger(index)) return errExpectInteger(foe, `${OP$d} arg2 <index>`);
   if (index < 0 && Math.abs(index) <= arr.length) {
     return arr[(index + arr.length) % arr.length];
   } else if (index >= 0 && index < arr.length) {
@@ -99719,7 +99705,7 @@ const $filter = (obj, expr, options) => {
   if (!isArray(input)) return errExpectArray(foe, "$filter 'input'");
   const limit = expr.limit ?? Math.max(input.length, 1);
   if (!isInteger(limit) || limit < 1)
-    return errExpectNumber(foe, "$filter 'limit'", { min: 1, int: true });
+    return errExpectInteger(foe, "$filter 'limit'", { min: 1 });
   if (input.length === 0) return [];
   const copts = ComputeOptions.init(options);
   const k = expr?.as || "this";
@@ -99784,9 +99770,9 @@ const $indexOfArray = (obj, expr, options) => {
   const start = args[2] ?? 0;
   const end = args[3] ?? arr.length;
   if (!isInteger(start) || start < 0)
-    return errExpectNumber(foe, `${OP$c} arg3 <start>`, INT_OPTS.pos);
+    return errExpectInteger(foe, `${OP$c} arg3 <start>`, { min: 1 });
   if (!isInteger(end) || end < 0)
-    return errExpectNumber(foe, `${OP$c} arg4 <end>`, INT_OPTS.pos);
+    return errExpectInteger(foe, `${OP$c} arg4 <end>`, { min: 1 });
   if (start > end) return -1;
   const input = start > 0 || end < arr.length ? arr.slice(start, end) : arr;
   return input.findIndex((v) => isEqual(v, search)) + start;
@@ -99839,10 +99825,12 @@ const $map = (obj, expr, options) => {
   const copts = ComputeOptions.init(options);
   const k = expr.as || "this";
   const locals = { variables: {} };
-  return input.map((o) => {
-    locals.variables[k] = o;
-    return evalExpr(obj, expr.in, copts.update(locals));
-  });
+  const result = new Array(input.length);
+  for (let i = 0; i < input.length; i++) {
+    locals.variables[k] = input[i];
+    result[i] = evalExpr(obj, expr.in, copts.update(locals));
+  }
+  return result;
 };
 
 const $maxN = (obj, expr, options) => {
@@ -99879,12 +99867,10 @@ const $range = (obj, expr, options) => {
   const [start, end, arg3] = evalExpr(obj, expr, options);
   const foe = options.failOnError;
   const step = arg3 ?? 1;
-  if (!isInteger(start))
-    return errExpectNumber(foe, `$range arg1 <start>`, INT_OPTS.int);
-  if (!isInteger(end))
-    return errExpectNumber(foe, `$range arg2 <end>`, INT_OPTS.int);
+  if (!isInteger(start)) return errExpectInteger(foe, `$range arg1 <start>`);
+  if (!isInteger(end)) return errExpectInteger(foe, `$range arg2 <end>`);
   if (!isInteger(step) || step === 0)
-    return errExpectNumber(foe, `$range arg3 <step>`, INT_OPTS.nzero);
+    return errExpectInteger(foe, `$range arg3 <step>`, { min: 0, max: 0 });
   const result = new Array();
   let counter = start;
   while (counter < end && step > 0 || counter > end && step < 0) {
@@ -99940,10 +99926,9 @@ const $slice$1 = (obj, expr, options) => {
   let skip = args[1];
   let limit = args[2];
   if (!isArray(arr)) return errExpectArray(foe, "$slice arg1 <array>");
-  if (!isInteger(skip))
-    return errExpectNumber(foe, "$slice arg2 <n>", INT_OPTS.int);
+  if (!isInteger(skip)) return errExpectInteger(foe, "$slice arg2 <n>");
   if (!isNil(limit) && !isInteger(limit))
-    return errExpectNumber(foe, "$slice arg3 <n>", INT_OPTS.int);
+    return errExpectInteger(foe, "$slice arg3 <n>");
   if (isNil(limit)) {
     if (skip < 0) {
       skip = Math.max(0, arr.length + skip);
@@ -99956,7 +99941,7 @@ const $slice$1 = (obj, expr, options) => {
       skip = Math.max(0, arr.length + skip);
     }
     if (limit < 1) {
-      return errExpectNumber(foe, "$slice arg3 <n>", INT_OPTS.pos);
+      return errExpectInteger(foe, "$slice arg3 <n>", { min: 1 });
     }
     limit += skip;
   }
@@ -100011,9 +99996,11 @@ const $zip = (obj, expr, options) => {
   }
   const result = [];
   for (let i = 0; i < zipCount; i++) {
-    const temp = inputs.map((val, index) => {
-      return isNil(val[i]) ? defaults[index] ?? null : val[i];
-    });
+    const temp = new Array(inputs.length);
+    for (let j = 0; j < inputs.length; j++) {
+      const val = inputs[j][i];
+      temp[j] = isNil(val) ? defaults[j] ?? null : val;
+    }
     result.push(temp);
   }
   return result;
@@ -100045,8 +100032,7 @@ const $bitAnd = (obj, expr, options) => processBitwise(
 const $bitNot = (obj, expr, options) => {
   const n = evalExpr(obj, expr, options);
   if (isNil(n)) return null;
-  if (!isInteger(n))
-    return errExpectNumber(options.failOnError, "$bitNot", INT_OPTS.int);
+  if (!isInteger(n)) return errExpectInteger(options.failOnError, "$bitNot");
   return ~n;
 };
 
@@ -100101,9 +100087,7 @@ function $limit(coll, expr, _options) {
 function $documents(_, expr, options) {
   const docs = evalExpr(null, expr, options);
   assert(isArray(docs), "$documents expression must resolve to an array.");
-  const iter = Lazy(docs);
-  const mode = options.processingMode;
-  return mode & ProcessingMode.CLONE_ALL ? iter.map((o) => cloneDeep(o)) : iter;
+  return Lazy(docs).map((o) => cloneDeep(o));
 }
 
 const EMPTY = Lazy([]);
@@ -100197,7 +100181,7 @@ function createHandler(expr, options, meta) {
   const { exclusions, inclusions } = meta;
   const handlers = {};
   const resolveOpts = {
-    preserveMissing: true
+    preserveIndex: "missing"
   };
   for (const k of exclusions) {
     handlers[k] = (t, _) => {
@@ -100211,9 +100195,7 @@ function createHandler(expr, options, meta) {
       assert(cond, `${OP$b}: positional operator '.$' requires array condition.`);
       const field = selector.slice(0, -2);
       handlers[field] = getPositionalFilter(field, cond, options);
-      continue;
-    }
-    if (isArray(v)) {
+    } else if (isArray(v)) {
       handlers[selector] = (t, o) => {
         options.update({ root: o });
         const newVal = v.map((e) => evalExpr(o, e, options) ?? null);
@@ -100577,6 +100559,9 @@ let Query$1 = class Query {
 };
 
 function elemMatchPredicate(criteria, options) {
+  if (Object.keys(criteria).length === 0) {
+    return (v) => isObject(v);
+  }
   let format = (x) => x;
   let wrap = true;
   for (const k of Object.keys(criteria)) {
@@ -100591,10 +100576,10 @@ function elemMatchPredicate(criteria, options) {
   return (v) => q.test(format(v));
 }
 function processQuery(selector, value, options, predicate) {
-  const pathArray = selector.split(".");
-  const depth = Math.max(1, pathArray.length - 1);
+  let [begin, depth] = [-1, 0];
+  while ((begin = selector.indexOf(".", begin + 1)) !== -1) depth++;
   const copts = ComputeOptions.init(options).update({ depth });
-  const opts = { unwrapArray: true, pathArray };
+  const opts = { unwrapArray: true };
   if (predicate === $elemMatch$2) {
     value = elemMatchPredicate(value, options);
   }
@@ -100625,7 +100610,10 @@ function $ne$2(a, b, options) {
 }
 function $in$1(a, b, _options) {
   if (isNil(a)) return b.some((v) => v === null);
-  return intersection([ensureArray(a), b]).length > 0;
+  const values = ensureArray(a);
+  if (intersection([values, b]).length > 0) return true;
+  const patterns = b.filter(isRegExp);
+  return patterns.length > 0 && values.some((v) => isString(v) && patterns.some((re) => re.test(v)));
 }
 function $nin$1(a, b, options) {
   return !$in$1(a, b);
@@ -100675,7 +100663,7 @@ function $size$1(a, b, _options) {
   return Array.isArray(a) && a.length === b;
 }
 function $elemMatch$2(a, b, _options) {
-  if (isArray(a) && !isEmpty(a)) {
+  if (isArray(a) && a.length !== 0) {
     for (let i = 0, len = a.length; i < len; i++) if (b(a[i])) return true;
   }
   return false;
@@ -100687,8 +100675,8 @@ const compareFuncs = {
   bool: isBoolean,
   date: isDate,
   number: isNumber,
-  int: isNumber,
-  long: isNumber,
+  int: isInteger,
+  long: isInteger,
   double: isNumber,
   decimal: isNumber,
   null: isNull,
@@ -100711,9 +100699,9 @@ const compareFuncs = {
   9: isDate,
   10: isNull,
   11: isRegExp,
-  16: isNumber,
+  16: isInteger,
   //int
-  18: isNumber,
+  18: isInteger,
   //long
   19: isNumber
   //decimal
@@ -100935,7 +100923,7 @@ function parseTimezone(timeZone, date) {
     const tzDate = new Date(date.toLocaleString("en-US", { timeZone }));
     return Math.round((tzDate.getTime() - utcDate.getTime()) / 6e4);
   }
-  const match = DATE_SYM_TABLE["%z"].re.exec(timeZone) ?? [];
+  const match = DATE_SYM_TABLE["%z"].re.exec(timeZone);
   assert(!!match, `timezone '${timeZone}' is invalid or not supported.`);
   const hr = parseInt(match[2]) || 0;
   const min = parseInt(match[3]) || 0;
@@ -100948,12 +100936,10 @@ function adjustDate(d, minuteOffset) {
   d.setUTCMinutes(d.getUTCMinutes() + minuteOffset);
 }
 function computeDate(obj, expr, options) {
-  if (isDate(obj)) return obj;
   const d = evalExpr(obj, expr, options);
   if (isDate(d)) return new Date(d);
-  if (isNumber(d)) return new Date(d * 1e3);
   assert(!!d?.date, `cannot convert ${JSON.stringify(expr)} to date`);
-  const date = isDate(d.date) ? new Date(d.date) : new Date(d.date * 1e3);
+  const date = new Date(d.date);
   if (d.timezone) adjustDate(date, parseTimezone(d.timezone, date));
   return date;
 }
@@ -101565,9 +101551,9 @@ const $indexOfBytes = (obj, expr, options) => {
   const start = args[2] ?? 0;
   const end = args[3] ?? str.length;
   if (!isInteger(start) || start < 0)
-    return errExpectNumber(foe, `${OP$6} arg3 <start>`, INT_OPTS.index);
+    return errExpectInteger(foe, `${OP$6} arg3 <start>`, { min: 0 });
   if (!isInteger(end) || end < 0)
-    return errExpectNumber(foe, `${OP$6} arg4 <end>`, INT_OPTS.index);
+    return errExpectInteger(foe, `${OP$6} arg4 <end>`, { min: 0 });
   if (start > end) return -1;
   const index = str.substring(start, end).indexOf(search);
   return index > -1 ? index + start : index;
@@ -101687,7 +101673,7 @@ const $replaceAll = (obj, expr, options) => {
   if (!isString(find)) return errExpectString(foe, `${OP$5} 'find'`);
   if (!isString(replacement))
     return errExpectString(foe, `${OP$5} 'replacement'`);
-  return input.replace(new RegExp(find, "g"), replacement);
+  return input.split(find).join(replacement);
 };
 
 const OP$4 = "$replaceOne";
@@ -101700,7 +101686,9 @@ const $replaceOne = (obj, expr, options) => {
   if (!isString(find)) return errExpectString(foe, `${OP$4} 'find'`);
   if (!isString(replacement))
     return errExpectString(foe, `${OP$4} 'replacement'`);
-  return args.input.replace(args.find, args.replacement);
+  const idx = input.indexOf(find);
+  if (idx < 0) return input;
+  return input.slice(0, idx) + replacement + input.slice(idx + find.length);
 };
 
 const $rtrim = (obj, expr, options) => {
@@ -101742,7 +101730,7 @@ const $strLenBytes = (obj, expr, options) => {
 const $strLenCP = (obj, expr, options) => {
   const s = evalExpr(obj, expr, options);
   if (!isString(s)) return errExpectString(options.failOnError, "$strLenCP");
-  return s.length;
+  return [...s].length;
 };
 
 const OP$3 = "$substrBytes";
@@ -101753,9 +101741,9 @@ const $substrBytes = (obj, expr, options) => {
   const nil = isNil(s);
   if (!nil && !isString(s)) return errExpectString(foe, `${OP$3} arg1 <string>`);
   if (!isInteger(index) || index < 0)
-    return errExpectNumber(foe, `${OP$3} arg2 <index>`, INT_OPTS.index);
+    return errExpectInteger(foe, `${OP$3} arg2 <index>`, { min: 0 });
   if (!isInteger(count) || count < 0)
-    return errExpectNumber(foe, `${OP$3} arg3 <count>`, INT_OPTS.index);
+    return errExpectInteger(foe, `${OP$3} arg3 <count>`, { min: 0 });
   if (nil) return "";
   let utf8Pos = 0;
   let start16 = null;
@@ -101812,8 +101800,9 @@ const $substrCP = (obj, expr, options) => {
   if (!isInteger(count)) return errExpectNumber(foe, `${OP$2} arg3 <count>`);
   if (nil) return "";
   if (index < 0) return "";
-  if (count < 0) return s.substring(index);
-  return s.substring(index, index + count);
+  const codePoints = [...s];
+  if (count < 0) return codePoints.slice(index).join("");
+  return codePoints.slice(index, index + count).join("");
 };
 
 const $toBool = (obj, expr, options) => {
@@ -103507,7 +103496,8 @@ function $fill(coll, expr, options) {
 }
 
 function $lookup(coll, expr, options) {
-  const { let: letExpr, foreignField, localField } = expr;
+  const letExpr = expr.let;
+  const { foreignField, localField } = expr;
   let lookupEq = (_) => [true, []];
   let joinColl = isString(expr.from) ? resolveCollection("$lookup", expr.from, options) : expr.from;
   const { documents, pipeline } = filterDocumentsStage(
@@ -103547,15 +103537,15 @@ function $lookup(coll, expr, options) {
     };
     if (pipeline?.length === 0) {
       return coll.map((obj) => {
-        return { ...obj, [expr.as]: lookupEq(obj).pop() };
+        return { ...obj, [expr.as]: lookupEq(obj)[1] };
       });
     }
   }
   const agg = new Aggregator$1(pipeline ?? [], options);
   const opts = ComputeOptions.init(options);
   return coll.map((obj) => {
-    const vars = evalExpr(obj, letExpr, options);
-    opts.update({ root: null, variables: vars });
+    const variables = evalExpr(obj, letExpr, options);
+    opts.update({ root: null, variables });
     const [ok, res] = lookupEq(obj);
     return { ...obj, [expr.as]: ok ? agg.run(joinColl, opts) : res };
   });
@@ -103575,7 +103565,7 @@ function $graphLookup(coll, expr, options) {
     depthField,
     restrictSearchWithMatch: matchExpr
   } = expr;
-  const pipelineExpr = matchExpr ? { pipeline: [{ $match: matchExpr }] } : {};
+  const query = new Query$1(matchExpr ?? {}, options);
   return coll.map((obj) => {
     const matchObj = {};
     setValue(
@@ -103595,12 +103585,12 @@ function $graphLookup(coll, expr, options) {
             from: fromColl,
             localField: connectFromField,
             foreignField: connectToField,
-            as: asField,
-            ...pipelineExpr
+            as: asField
           },
           options
         ).map((o) => o[asField]).collect()
       );
+      matches = matches.filter((o) => query.test(o));
       const oldSize = map.size;
       for (const k of matches) map.set(k, map.get(k) ?? i);
       if (oldSize == map.size) break;
@@ -103915,12 +103905,12 @@ const $elemMatch = (selector, value, options) => processQuery(selector, value, o
 
 const $size = (selector, value, options) => processQuery(selector, value, options, $size$1);
 
-const processBitwiseQuery = (selector, value, predicate) => {
+const processBitwiseQuery = (selector, value, options, predicate) => {
   return processQuery(
     selector,
     value,
-    null,
-    (value2, mask) => {
+    options,
+    (value2, mask, _opts) => {
       let b = 0;
       if (isArray(mask)) {
         for (const n of mask) b = b | 1 << n;
@@ -103932,13 +103922,13 @@ const processBitwiseQuery = (selector, value, predicate) => {
   );
 };
 
-const $bitsAllClear = (selector, value, _options) => processBitwiseQuery(selector, value, (result, _) => result == 0);
+const $bitsAllClear = (selector, value, opts) => processBitwiseQuery(selector, value, opts, (result, _) => result == 0);
 
-const $bitsAllSet = (selector, value, _options) => processBitwiseQuery(selector, value, (result, mask) => result == mask);
+const $bitsAllSet = (selector, value, opts) => processBitwiseQuery(selector, value, opts, (result, mask) => result == mask);
 
-const $bitsAnyClear = (selector, value, _options) => processBitwiseQuery(selector, value, (result, mask) => result < mask);
+const $bitsAnyClear = (selector, value, opts) => processBitwiseQuery(selector, value, opts, (result, mask) => result < mask);
 
-const $bitsAnySet = (selector, value, _options) => processBitwiseQuery(selector, value, (result, _) => result > 0);
+const $bitsAnySet = (selector, value, opts) => processBitwiseQuery(selector, value, opts, (result, _) => result > 0);
 
 const $eq = (selector, value, options) => processQuery(selector, value, options, $eq$2);
 
@@ -103960,14 +103950,13 @@ const $exists = (selector, value, _options) => {
   const nested = selector.includes(".");
   const b = !!value;
   if (!nested || selector.match(/\.\d+$/)) {
-    const opts2 = { pathArray: selector.split(".") };
-    return (o) => resolve(o, selector, opts2) !== void 0 === b;
+    return (o) => resolve(o, selector) !== void 0 === b;
   }
   const parentSelector = selector.substring(0, selector.lastIndexOf("."));
-  const opts = { pathArray: parentSelector.split("."), preserveIndex: true };
+  const opts = { preserveIndex: "default" };
   return (o) => {
     const path = resolveGraph(o, selector, opts);
-    const val = resolve(path, parentSelector, opts);
+    const val = resolve(path, parentSelector);
     return isArray(val) ? val.some((v) => v !== void 0) === b : val !== void 0 === b;
   };
 };
