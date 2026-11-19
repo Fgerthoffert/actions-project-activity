@@ -41,11 +41,11 @@
     "@actions/core": "^3.0.1",
     "@octokit/plugin-paginate-graphql": "^6.0.0",
     "date-fns": "^4.4.0",
-    "flat-cache": "^6.1.22",
-    "graphql-tag": "^2.12.6",
-    "mingo": "^7.2.1",
+    "flat-cache": "^6.1.23",
+    "graphql-tag": "^2.12.7",
+    "mingo": "^7.2.7",
     "sqlite3": "^6.0.1",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@eslint/compat": "^1.4.1",
