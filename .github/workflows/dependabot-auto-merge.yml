@@ -1,0 +1,34 @@
+# Automatically merges Dependabot pull requests once the required status
+# checks pass. Major version updates are left for a human to review.
+#
+# Auto-merge only completes because the repository requires the CI and
+# Check dist/ status checks on main: GitHub holds the merge until they pass.
+name: Dependabot Auto-Merge
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Enable Auto-Merge
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+
+    steps:
+      - name: Fetch Dependabot Metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Majors stay open for a human review; everything else merges once
+      # the required checks are green.
+      - name: Enable Auto-Merge
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
